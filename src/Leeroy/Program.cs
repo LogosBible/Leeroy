@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.ServiceProcess;
 using System.Text;
+using System.Threading;
 
 namespace Leeroy
 {
@@ -11,14 +12,17 @@ namespace Leeroy
 		/// <summary>
 		/// The main entry point for the application.
 		/// </summary>
-		static void Main()
+		static void Main(string[] args)
 		{
-			ServiceBase[] ServicesToRun;
-			ServicesToRun = new ServiceBase[] 
-			{ 
-				new Service() 
-			};
-			ServiceBase.Run(ServicesToRun);
+			if (args.FirstOrDefault() == "/test")
+			{
+				Overseer overseer = new Overseer(new CancellationTokenSource().Token, "BradleyGrainger", "Configuration", "master");
+				overseer.Run(null);
+			}
+			else
+			{
+				ServiceBase.Run(new ServiceBase[] { new Service() });
+			}
 		}
 	}
 }
