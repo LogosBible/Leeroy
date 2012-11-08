@@ -1,11 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Diagnostics;
-using System.Linq;
-using System.ServiceProcess;
-using System.Text;
+﻿using System.ServiceProcess;
+using Common.Logging;
 
 namespace Leeroy
 {
@@ -14,14 +8,19 @@ namespace Leeroy
 		public Service()
 		{
 			InitializeComponent();
+			Log.Info("Initializing service.");
 		}
 
 		protected override void OnStart(string[] args)
 		{
+			Log.Info("Starting service.");
 		}
 
 		protected override void OnStop()
 		{
+			Log.Info("Stopping service.");
 		}
+
+		static readonly ILog Log = LogManager.GetCurrentClassLogger();
 	}
 }
