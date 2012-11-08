@@ -58,10 +58,14 @@
     <Reference Include="log4net">
       <HintPath>..\..\packages\log4net.1.2.10\lib\2.0\log4net.dll</HintPath>
     </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\..\packages\Newtonsoft.Json.4.5.10\lib\net40\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Configuration.Install" />
     <Reference Include="System.Core" />
     <Reference Include="System.Management" />
+    <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -70,12 +74,22 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="GitHubClient.cs" />
     <Compile Include="Installer.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Installer.Designer.cs">
       <DependentUpon>Installer.cs</DependentUpon>
     </Compile>
+    <Compile Include="JsonUtility.cs" />
+    <Compile Include="Json\Configuration.cs" />
+    <Compile Include="Json\GitBlob.cs" />
+    <Compile Include="Json\GitCommit.cs" />
+    <Compile Include="Json\GitCommitTree.cs" />
+    <Compile Include="Json\GitHubCommit.cs" />
+    <Compile Include="Json\GitTree.cs" />
+    <Compile Include="Json\GitTreeItem.cs" />
+    <Compile Include="Overseer.cs" />
     <Compile Include="Service.cs">
       <SubType>Component</SubType>
     </Compile>

@@ -19,8 +19,8 @@ namespace Leeroy
 			Log.Info("Starting service.");
 
 			m_tokenSource = new CancellationTokenSource();
-			m_token = m_tokenSource.Token;
-			m_task = Task.Factory.StartNew(Run, m_tokenSource, TaskCreationOptions.LongRunning);
+			Overseer overseer = new Overseer(m_tokenSource.Token, "BradleyGrainger", "Configuration", "master");
+			m_task = Task.Factory.StartNew(overseer.Run, m_tokenSource, TaskCreationOptions.LongRunning);
 		}
 
 		protected override void OnStop()
@@ -43,13 +43,7 @@ namespace Leeroy
 			m_tokenSource.Dispose();
 		}
 
-		private void Run(object obj)
-		{
-			m_token.ThrowIfCancellationRequested();
-		}
-
 		CancellationTokenSource m_tokenSource;
-		CancellationToken m_token;
 		Task m_task;
 
 		static readonly ILog Log = LogManager.GetCurrentClassLogger();
