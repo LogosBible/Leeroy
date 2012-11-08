@@ -21,18 +21,32 @@ namespace Leeroy
 		{
 			m_token.ThrowIfCancellationRequested();
 
+			// load initial configuration
 			LoadConfiguration();
+
+			// keep checking for updates
+			while (!m_token.IsCancellationRequested)
+			{
+				string commitId = GitHubClient.GetLatestCommitId(m_user, m_repo, m_branch);
+				if (commitId != m_lastConfigurationCommitId)
+				{
+					Log.InfoFormat("Configuration repo commit ID has changed from {0} to {1}; reloading configuration.", m_lastConfigurationCommitId, commitId);
+					LoadConfiguration();
+				}
+
+				m_token.WaitHandle.WaitOne(5000);
+			}
 		}
 
 		private List<Configuration> LoadConfiguration()
 		{
 			Log.InfoFormat("Getting latest commit for {0}/{1}/{2}.", m_user, m_repo, m_branch);
-			GitHubCommit commit = GitHubClient.GetLatestCommit(m_user, m_repo, m_branch);
+			m_lastConfigurationCommitId = GitHubClient.GetLatestCommitId(m_user, m_repo, m_branch);
 
 			m_token.ThrowIfCancellationRequested();
 
-			Log.InfoFormat("Latest commit is {0}; getting tree.", commit.Sha);
-			GitCommit gitCommit = GitHubClient.GetCommit(m_user, m_repo, commit.Sha);
+			Log.InfoFormat("Latest commit is {0}; getting tree.", m_lastConfigurationCommitId);
+			GitCommit gitCommit = GitHubClient.GetCommit(m_user, m_repo, m_lastConfigurationCommitId);
 
 			m_token.ThrowIfCancellationRequested();
 
@@ -64,7 +78,7 @@ namespace Leeroy
 		readonly string m_repo;
 		readonly string m_branch;
 
-
+		string m_lastConfigurationCommitId;
 
 		static readonly ILog Log = LogManager.GetLogger("Overseer");
 	}
