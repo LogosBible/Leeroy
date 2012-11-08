@@ -4,6 +4,9 @@ build/
 obj/
 ipch/
 
+# use NuGet Package Restore
+packages/
+
 # ignore user-specific options/cache files
 _ReSharper.*
 Thumbs.db
