@@ -14,7 +14,7 @@ namespace Leeroy
 			Log.Info("Initializing service.");
 		}
 
-		protected override void OnStart(string[] args)
+		internal void Start()
 		{
 			Log.Info("Starting service.");
 
@@ -23,7 +23,7 @@ namespace Leeroy
 			m_task = Task.Factory.StartNew(overseer.Run, m_tokenSource, TaskCreationOptions.LongRunning);
 		}
 
-		protected override void OnStop()
+		internal new void Stop()
 		{
 			Log.Info("Stopping service.");
 
@@ -41,6 +41,16 @@ namespace Leeroy
 			// shut down
 			m_task.Dispose();
 			m_tokenSource.Dispose();
+		}
+
+		protected override void OnStart(string[] args)
+		{
+			Start();
+		}
+
+		protected override void OnStop()
+		{
+			Stop();
 		}
 
 		CancellationTokenSource m_tokenSource;
