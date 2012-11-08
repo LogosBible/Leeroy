@@ -1,4 +1,7 @@
-﻿using System.ServiceProcess;
+﻿using System;
+using System.ServiceProcess;
+using System.Threading;
+using System.Threading.Tasks;
 using Common.Logging;
 
 namespace Leeroy
@@ -14,12 +17,40 @@ namespace Leeroy
 		protected override void OnStart(string[] args)
 		{
 			Log.Info("Starting service.");
+
+			m_tokenSource = new CancellationTokenSource();
+			m_token = m_tokenSource.Token;
+			m_task = Task.Factory.StartNew(Run, m_tokenSource, TaskCreationOptions.LongRunning);
 		}
 
 		protected override void OnStop()
 		{
 			Log.Info("Stopping service.");
+
+			// cancel and wait for all work
+			m_tokenSource.Cancel();
+			try
+			{
+				m_task.Wait();
+			}
+			catch (AggregateException)
+			{
+				// TODO: verify this contains a single OperationCanceledException
+			}
+
+			// shut down
+			m_task.Dispose();
+			m_tokenSource.Dispose();
 		}
+
+		private void Run(object obj)
+		{
+			m_token.ThrowIfCancellationRequested();
+		}
+
+		CancellationTokenSource m_tokenSource;
+		CancellationToken m_token;
+		Task m_task;
 
 		static readonly ILog Log = LogManager.GetCurrentClassLogger();
 	}
