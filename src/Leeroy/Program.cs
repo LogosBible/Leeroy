@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Linq;
+using System.Net;
 using System.Runtime.InteropServices;
 using System.ServiceProcess;
+using Common.Logging;
 
 namespace Leeroy
 {
@@ -27,7 +29,33 @@ namespace Leeroy
 			}
 		}
 
+		public static HttpWebRequest CreateWebRequest(Uri uri)
+		{
+			HttpWebRequest request = (HttpWebRequest) WebRequest.Create(uri);
+			request.AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip;
+			request.UserAgent = "Leeroy/1.0";
+			return request;
+		}
+
+		public static Action<T> FailOnException<T>(this Action<T> action)
+		{
+			return x =>
+			{
+				try
+				{
+					action(x);
+				}
+				catch (Exception ex)
+				{
+					Log.Fatal("Unhandled exception in background work.", ex);
+					Environment.FailFast("Unhandled exception in background work.", ex);
+				}
+			};
+		}
+
+		static readonly ILog Log = LogManager.GetCurrentClassLogger();
+
 		[DllImport("user32.dll", CharSet = CharSet.Auto)]
-		public static extern int MessageBox(IntPtr hWnd, String text, String caption, int options);
+		private static extern int MessageBox(IntPtr hWnd, String text, String caption, int options);
 	}
 }

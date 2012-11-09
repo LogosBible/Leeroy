@@ -30,6 +30,25 @@ namespace Leeroy
 				return Deserialize(reader, type);
 		}
 
+		public static string ToJson<T>(T value)
+		{
+			JsonSerializerSettings settings =
+				new JsonSerializerSettings
+				{
+					ContractResolver = new CamelCasePropertyNamesContractResolver(),
+					DateParseHandling = DateParseHandling.None,
+					NullValueHandling = NullValueHandling.Ignore,
+					MissingMemberHandling = MissingMemberHandling.Ignore,
+				};
+
+			JsonSerializer serializer = JsonSerializer.Create(settings);
+			using (StringWriter writer = new StringWriter())
+			{
+				serializer.Serialize(writer, value);
+				return writer.ToString();
+			}
+		}
+
 		private static object Deserialize(JsonReader reader, Type type)
 		{
 			JsonSerializerSettings settings =

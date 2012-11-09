@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Common.Logging;
 using Leeroy.Json;
 
@@ -21,31 +22,47 @@ namespace Leeroy
 		{
 			m_token.ThrowIfCancellationRequested();
 
-			// load initial configuration
-			LoadConfiguration();
-
 			// keep checking for updates
 			while (!m_token.IsCancellationRequested)
 			{
+				if (m_watchers == null)
+				{
+					List<BuildProject> projects = LoadConfiguration();
+					CreateWatchers(projects);
+				}
+
 				string commitId = GitHubClient.GetLatestCommitId(m_user, m_repo, m_branch);
 				if (commitId != m_lastConfigurationCommitId)
 				{
 					Log.InfoFormat("Configuration repo commit ID has changed from {0} to {1}; reloading configuration.", m_lastConfigurationCommitId, commitId);
-					LoadConfiguration();
+
+					// cancel existing work
+					m_currentConfigurationTokenSource.Cancel();
+					try
+					{
+						Task.WaitAll(m_watchers.ToArray());
+					}
+					catch (AggregateException)
+					{
+					}
+					m_currentConfigurationTokenSource.Dispose();
+
+					// force configuration to be reloaded
+					m_watchers = null;
 				}
 
-				m_token.WaitHandle.WaitOne(5000);
+				m_token.WaitHandle.WaitOne(TimeSpan.FromSeconds(5));
 			}
 		}
 
-		private List<Configuration> LoadConfiguration()
+		private List<BuildProject> LoadConfiguration()
 		{
 			Log.InfoFormat("Getting latest commit for {0}/{1}/{2}.", m_user, m_repo, m_branch);
 			m_lastConfigurationCommitId = GitHubClient.GetLatestCommitId(m_user, m_repo, m_branch);
 
 			m_token.ThrowIfCancellationRequested();
 
-			Log.InfoFormat("Latest commit is {0}; getting tree.", m_lastConfigurationCommitId);
+			Log.InfoFormat("Latest commit is {0}; getting details.", m_lastConfigurationCommitId);
 			GitCommit gitCommit = GitHubClient.GetCommit(m_user, m_repo, m_lastConfigurationCommitId);
 
 			m_token.ThrowIfCancellationRequested();
@@ -59,18 +76,37 @@ namespace Leeroy
 			foreach (GitTreeItem item in tree.Items)
 				Log.Debug(item.Path);
 
-			List<Configuration> configurations = new List<Configuration>();
+			List<BuildProject> buildProjects = new List<BuildProject>();
 
 			foreach (GitTreeItem item in tree.Items.Where(x => x.Type == "blob" && x.Path.EndsWith(".json", StringComparison.OrdinalIgnoreCase)))
 			{
 				GitBlob blob = GitHubClient.Get<GitBlob>(item.Url);
 
-				Configuration configuration = JsonUtility.FromJson<Configuration>(blob.GetContent());
-				configurations.Add(configuration);
-				Log.InfoFormat("Added configuration: {0}", item.Path);
+				BuildProject buildProject = JsonUtility.FromJson<BuildProject>(blob.GetContent());
+				buildProjects.Add(buildProject);
+				Log.InfoFormat("Added build project: {0}", item.Path);
 			}
 
-			return configurations;
+			return buildProjects;
+		}
+
+		private void CreateWatchers(IEnumerable<BuildProject> projects)
+		{
+			// create a new cancellation token for all the monitors about to be created
+			CancellationTokenSource tokenSource = new CancellationTokenSource();
+			CancellationTokenSource linkedSource = CancellationTokenSource.CreateLinkedTokenSource(m_token, tokenSource.Token);
+			CancellationToken linkedToken = linkedSource.Token;
+
+			// create a watcher for each project
+			List<Task> watchers = new List<Task>();
+			foreach (BuildProject project in projects)
+			{
+				Watcher watcher = new Watcher(project, linkedToken);
+				watchers.Add(watcher.CreateTask());
+			}
+
+			m_currentConfigurationTokenSource = tokenSource;
+			m_watchers = watchers;
 		}
 
 		readonly CancellationToken m_token;
@@ -79,6 +115,9 @@ namespace Leeroy
 		readonly string m_branch;
 
 		string m_lastConfigurationCommitId;
+
+		CancellationTokenSource m_currentConfigurationTokenSource;
+		List<Task> m_watchers;
 
 		static readonly ILog Log = LogManager.GetLogger("Overseer");
 	}

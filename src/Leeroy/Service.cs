@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net;
 using System.ServiceProcess;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,6 +13,8 @@ namespace Leeroy
 		{
 			InitializeComponent();
 			Log.Info("Initializing service.");
+
+			ServicePointManager.DefaultConnectionLimit = 10;
 		}
 
 		internal void Start()
@@ -20,7 +23,7 @@ namespace Leeroy
 
 			m_tokenSource = new CancellationTokenSource();
 			Overseer overseer = new Overseer(m_tokenSource.Token, "BradleyGrainger", "Configuration", "master");
-			m_task = Task.Factory.StartNew(overseer.Run, m_tokenSource, TaskCreationOptions.LongRunning);
+			m_task = Task.Factory.StartNew(Program.FailOnException<object>(overseer.Run), m_tokenSource, TaskCreationOptions.LongRunning);
 		}
 
 		internal new void Stop()

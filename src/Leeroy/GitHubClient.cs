@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Net;
+using System.Text;
 using Common.Logging;
 using Leeroy.Json;
 using Newtonsoft.Json;
@@ -27,6 +28,42 @@ namespace Leeroy
 			return Get<GitCommit>(@"http://git/api/v3/repos/{0}/{1}/git/commits/{2}", user, repo, sha);
 		}
 
+		public static GitBlob CreateBlob(string user, string repo, GitBlob blob)
+		{
+			string json = JsonUtility.ToJson(blob);
+			Uri url = new Uri(@"http://git/api/v3/repos/{0}/{1}/git/blobs".FormatInvariant(user, repo));
+
+			var request = PostJson(url, json);
+			return Get<GitBlob>(url, request);
+		}
+
+		public static GitCommit CreateCommit(string user, string repo, GitCreateCommit commit)
+		{
+			string json = JsonUtility.ToJson(commit);
+			Uri url = new Uri(@"http://git/api/v3/repos/{0}/{1}/git/commits".FormatInvariant(user, repo));
+
+			var request = PostJson(url, json);
+			return Get<GitCommit>(url, request);
+		}
+
+		public static GitTree CreateTree(string user, string repo, GitCreateTree tree)
+		{
+			string json = JsonUtility.ToJson(tree);
+			Uri url = new Uri(@"http://git/api/v3/repos/{0}/{1}/git/trees".FormatInvariant(user, repo));
+
+			var request = PostJson(url, json);
+			return Get<GitTree>(url, request);
+		}
+
+		public static GitReference UpdateReference(string user, string repo, string name, GitUpdateReference update)
+		{
+			string json = JsonUtility.ToJson(update);
+			Uri url = new Uri(@"http://git/api/v3/repos/{0}/{1}/git/refs/heads/{2}".FormatInvariant(user, repo, name));
+
+			var request = PostJson(url, json, "PATCH");
+			return Get<GitReference>(url, request);
+		}
+
 		public static T Get<T>(string url)
 		{
 			return Get<T>(new Uri(url));
@@ -39,7 +76,12 @@ namespace Leeroy
 
 		public static T Get<T>(Uri uri)
 		{
-			HttpWebRequest request = CreateWebRequest(uri);
+			HttpWebRequest request = Program.CreateWebRequest(uri);
+			return Get<T>(uri, request);
+		}
+
+		private static T Get<T>(Uri uri, HttpWebRequest request)
+		{
 			try
 			{
 				using (HttpWebResponse response = (HttpWebResponse) request.GetResponse())
@@ -67,7 +109,7 @@ namespace Leeroy
 
 		private static string GetString(Uri uri)
 		{
-			HttpWebRequest request = CreateWebRequest(uri);
+			HttpWebRequest request = Program.CreateWebRequest(uri);
 			try
 			{
 				using (HttpWebResponse response = (HttpWebResponse) request.GetResponse())
@@ -83,12 +125,25 @@ namespace Leeroy
 			return null;
 		}
 
-		private static HttpWebRequest CreateWebRequest(Uri uri)
+		private static HttpWebRequest PostJson(Uri url, string json, string method = "POST")
 		{
-			HttpWebRequest request = (HttpWebRequest) WebRequest.Create(uri);
-			request.AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip;
-			request.UserAgent = "Leeroy/1.0";
+			HttpWebRequest request = Program.CreateWebRequest(url);
+			AddCredentials(request);
+			request.Method = method;
+			request.ContentType = "application/json; charset=utf-8";
+			byte[] jsonBytes = Encoding.UTF8.GetBytes(json);
+			request.ContentLength = jsonBytes.Length;
+			using (Stream stream = request.GetRequestStream())
+				stream.Write(jsonBytes, 0, jsonBytes.Length);
 			return request;
+		}
+
+		private static void AddCredentials(WebRequest request)
+		{
+			// send the basic authorization info immediately (request.Credentials will wait to be challenged by the server)
+			string authInfo = "user:password";
+			authInfo = Convert.ToBase64String(Encoding.Default.GetBytes(authInfo));
+			request.Headers["Authorization"] = "Basic " + authInfo;
 		}
 
 		static bool m_useGitData = true;

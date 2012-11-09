@@ -8,7 +8,7 @@ namespace Leeroy.Json
 
 		public Uri Url { get; set; }
 
-		public int Size { get; set; }
+		public int? Size { get; set; }
 
 		public string Sha { get; set; }
 

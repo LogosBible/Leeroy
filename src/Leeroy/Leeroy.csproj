@@ -74,6 +74,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ActionExtensions.cs" />
     <Compile Include="GitHubClient.cs" />
     <Compile Include="Installer.cs">
       <SubType>Component</SubType>
@@ -82,13 +83,18 @@
       <DependentUpon>Installer.cs</DependentUpon>
     </Compile>
     <Compile Include="JsonUtility.cs" />
-    <Compile Include="Json\Configuration.cs" />
+    <Compile Include="Json\BuildProject.cs" />
     <Compile Include="Json\GitBlob.cs" />
     <Compile Include="Json\GitCommit.cs" />
     <Compile Include="Json\GitCommitTree.cs" />
+    <Compile Include="Json\GitCreateCommit.cs" />
+    <Compile Include="Json\GitCreateTree.cs" />
     <Compile Include="Json\GitHubCommit.cs" />
+    <Compile Include="Json\GitObject.cs" />
+    <Compile Include="Json\GitReference.cs" />
     <Compile Include="Json\GitTree.cs" />
     <Compile Include="Json\GitTreeItem.cs" />
+    <Compile Include="Json\GitUpdateReference.cs" />
     <Compile Include="Overseer.cs" />
     <Compile Include="Service.cs">
       <SubType>Component</SubType>
@@ -99,6 +105,8 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="StringExtensions.cs" />
+    <Compile Include="Submodule.cs" />
+    <Compile Include="Watcher.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Service.resx">
