@@ -104,11 +104,18 @@ namespace Leeroy
 			foreach (Uri uri in uris)
 			{
 				// GET the build URL, which will start a build
-				Log.InfoFormat("Starting a build via {0}.", uri.AbsoluteUri);
+				Log.InfoFormat("Starting a build via: {0}", uri.AbsoluteUri);
 				HttpWebRequest request = Program.CreateWebRequest(uri);
-				using (WebResponse response = request.GetResponse())
-				using (Stream stream = response.GetResponseStream())
+
+				try
 				{
+					using (request.GetResponse())
+					{
+					}
+				}
+				catch (WebException ex)
+				{
+					Log.ErrorFormat("Couldn't start build at: {0}", ex, uri.AbsoluteUri);
 				}
 			}
 		}
