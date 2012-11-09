@@ -7,6 +7,8 @@ namespace Leeroy.Json
 	{
 		public Uri BuildUrl { get; set; }
 
+		public Uri[] BuildUrls { get; set; }
+
 		public string RepoUrl { get; set; }
 
 		public string Branch { get; set; }

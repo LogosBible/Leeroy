@@ -96,11 +96,16 @@ namespace Leeroy
 		// Triggers a Jenkins build by accessing the build URL.
 		private void StartBuild()
 		{
+			// concatenate all build URL
+			List<Uri> uris = new List<Uri>(m_project.BuildUrls ?? Enumerable.Empty<Uri>());
 			if (m_project.BuildUrl != null)
+				uris.Add(m_project.BuildUrl);
+
+			foreach (Uri uri in uris)
 			{
 				// GET the build URL, which will start a build
-				Log.InfoFormat("Starting a build via {0}.", m_project.BuildUrl.AbsoluteUri);
-				HttpWebRequest request = Program.CreateWebRequest(m_project.BuildUrl);
+				Log.InfoFormat("Starting a build via {0}.", uri.AbsoluteUri);
+				HttpWebRequest request = Program.CreateWebRequest(uri);
 				using (WebResponse response = request.GetResponse())
 				using (Stream stream = response.GetResponseStream())
 				{
