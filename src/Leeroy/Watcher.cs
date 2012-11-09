@@ -161,7 +161,7 @@ namespace Leeroy
 					{
 						// use specified branch; else default to tracking the build repo's branch
 						string branch;
-						if (!m_project.SubmoduleBranches.TryGetValue(path, out branch))
+						if (m_project.SubmoduleBranches == null || !m_project.SubmoduleBranches.TryGetValue(path, out branch))
 							branch = m_branch;
 
 						Log.InfoFormat("Adding new submodule: '{0}' = '{1}'.", path, url);
