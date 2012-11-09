@@ -4,6 +4,7 @@ using System.ServiceProcess;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Logging;
+using Leeroy.Properties;
 
 namespace Leeroy
 {
@@ -15,6 +16,7 @@ namespace Leeroy
 			Log.Info("Initializing service.");
 
 			ServicePointManager.DefaultConnectionLimit = 10;
+			GitHubClient.SetCredentials(Settings.Default.UserName, Settings.Default.Password);
 		}
 
 		internal void Start()

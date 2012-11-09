@@ -10,6 +10,12 @@ namespace Leeroy
 {
 	public static class GitHubClient
 	{
+		public static void SetCredentials(string userName, string password)
+		{
+			s_userName = userName;
+			s_password = password;
+		}
+
 		public static string GetLatestCommitId(string user, string repo, string branch)
 		{
 			if (m_useGitData)
@@ -141,7 +147,7 @@ namespace Leeroy
 		private static void AddCredentials(WebRequest request)
 		{
 			// send the basic authorization info immediately (request.Credentials will wait to be challenged by the server)
-			string authInfo = "user:password";
+			string authInfo = s_userName + ":" + s_password;
 			authInfo = Convert.ToBase64String(Encoding.Default.GetBytes(authInfo));
 			request.Headers["Authorization"] = "Basic " + authInfo;
 		}
@@ -149,5 +155,7 @@ namespace Leeroy
 		static bool m_useGitData = true;
 
 		static readonly ILog Log = LogManager.GetCurrentClassLogger();
+		static string s_userName;
+		static string s_password;
 	}
 }
