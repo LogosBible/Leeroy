@@ -21,7 +21,7 @@ namespace Leeroy
 		{
 			m_project = project;
 			SplitRepoUrl(m_project.RepoUrl, out m_server, out m_user, out m_repo);
-			m_branch = m_project.Branch;
+			m_branch = m_project.Branch ?? "master";
 			m_token = token;
 			m_submodules = new Dictionary<string, Submodule>();
 			Log = LogManager.GetLogger("Watcher/{0}/{1}/{2}".FormatInvariant(m_user, m_repo, m_branch));
