@@ -78,8 +78,16 @@ namespace Leeroy
 					// if there were updated submodules, create a new commit
 					if (submodulesToUpdate.Count != 0)
 					{
-						UpdateSubmodules(submodulesToUpdate);
-						submodulesToUpdate.Clear();
+						try
+						{
+							UpdateSubmodules(submodulesToUpdate);
+							submodulesToUpdate.Clear();
+						}
+						catch (WatcherException ex)
+						{
+							Log.Error("Updating submodules failed; will stop monitoring project.", ex);
+							break;
+						}
 					}
 				}
 			}
@@ -190,6 +198,9 @@ namespace Leeroy
 				string base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(buildVersionString));
 				GitBlob newBuildVersionBlob = new GitBlob { Content = base64, Encoding = "base64" };
 				newBuildVersionBlob = GitHubClient.CreateBlob(m_user, m_repo, newBuildVersionBlob);
+				if (newBuildVersionBlob == null)
+					throw new WatcherException("Couldn't create {0} blob.".FormatInvariant(buildNumberPath));
+
 				treeItems.Add(new GitTreeItem
 				{
 					Mode = "100644",
@@ -207,6 +218,8 @@ namespace Leeroy
 				Tree = treeItems.ToArray()
 			};
 			GitTree tree = GitHubClient.CreateTree(m_user, m_repo, newTree);
+			if (tree == null)
+				throw new WatcherException("Couldn't create new tree.");
 			Log.DebugFormat("Created new tree: {0}.", tree.Sha);
 
 			// create a commit
@@ -217,7 +230,9 @@ namespace Leeroy
 				Tree = tree.Sha,
 			};
 			GitCommit newCommit = GitHubClient.CreateCommit(m_user, m_repo, createCommit);
-			Log.InfoFormat("Created new commit for build {0}: {1}; moving branch", buildVersion, newCommit.Sha);
+			if (newCommit == null)
+				throw new WatcherException("Couldn't create new commit.");
+			Log.InfoFormat("Created new commit for build {0}: {1}; moving branch.", buildVersion, newCommit.Sha);
 
 			// advance the branch pointer to the new commit
 			GitReference reference = GitHubClient.UpdateReference(m_user, m_repo, m_branch, new GitUpdateReference { Sha = newCommit.Sha });
@@ -229,10 +244,6 @@ namespace Leeroy
 
 				// wait for the build to start, and for gitdata to be updated with the new commit data
 				m_token.WaitHandle.WaitOne(TimeSpan.FromSeconds(15));
-			}
-			else
-			{
-				// TODO: roll back submodule commit IDs and try again
 			}
 		}
 
@@ -293,6 +304,5 @@ namespace Leeroy
 		readonly ILog Log = LogManager.GetLogger("Watcher");
 
 		string m_lastBuildCommitId;
-
 	}
 }

@@ -107,6 +107,7 @@
     <Compile Include="StringExtensions.cs" />
     <Compile Include="Submodule.cs" />
     <Compile Include="Watcher.cs" />
+    <Compile Include="WatcherException.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Service.resx">
