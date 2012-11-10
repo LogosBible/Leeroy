@@ -5,6 +5,8 @@ namespace Leeroy.Json
 {
 	public sealed class BuildProject
 	{
+		public string Name { get; set; }
+
 		public Uri BuildUrl { get; set; }
 
 		public Uri[] BuildUrls { get; set; }

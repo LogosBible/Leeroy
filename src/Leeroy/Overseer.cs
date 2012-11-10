@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -83,6 +84,7 @@ namespace Leeroy
 				GitBlob blob = GitHubClient.Get<GitBlob>(item.Url);
 
 				BuildProject buildProject = JsonUtility.FromJson<BuildProject>(blob.GetContent());
+				buildProject.Name = Path.GetFileNameWithoutExtension(item.Path);
 				buildProjects.Add(buildProject);
 				Log.InfoFormat("Added build project: {0}", item.Path);
 			}
