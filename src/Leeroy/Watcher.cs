@@ -24,7 +24,8 @@ namespace Leeroy
 			m_branch = m_project.Branch ?? "master";
 			m_token = token;
 			m_submodules = new Dictionary<string, Submodule>();
-			Log = LogManager.GetLogger("Watcher/{0}/{1}/{2}".FormatInvariant(m_user, m_repo, m_branch));
+			Log = LogManager.GetLogger("Watcher/{0}".FormatInvariant(m_project.Name));
+			Log.InfoFormat("Watching '{0}' branch in {1}/{2}.", m_branch, m_user, m_repo);
 		}
 
 		public Task CreateTask()
