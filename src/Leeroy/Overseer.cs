@@ -64,7 +64,7 @@ namespace Leeroy
 			m_token.ThrowIfCancellationRequested();
 
 			Log.InfoFormat("Latest commit is {0}; getting details.", m_lastConfigurationCommitId);
-			GitCommit gitCommit = GitHubClient.GetCommit(m_user, m_repo, m_lastConfigurationCommitId);
+			GitCommit gitCommit = GitHubClient.GetGitCommit(m_user, m_repo, m_lastConfigurationCommitId);
 
 			m_token.ThrowIfCancellationRequested();
 

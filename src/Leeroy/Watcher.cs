@@ -35,7 +35,7 @@ namespace Leeroy
 
 		private void Run(object obj)
 		{
-			HashSet<string> submodulesToUpdate = new HashSet<string>();
+			Dictionary<string, string> updatedSubmodules = new Dictionary<string, string>();
 
 			while (!m_token.IsCancellationRequested)
 			{
@@ -50,7 +50,7 @@ namespace Leeroy
 					}
 
 					GetSubmodules();
-					submodulesToUpdate.Clear();
+					updatedSubmodules.Clear();
 				}
 				else
 				{
@@ -60,11 +60,10 @@ namespace Leeroy
 					{
 						Submodule submodule = pair.Value;
 						commitId = GitHubClient.GetLatestCommitId(submodule.User, submodule.Repo, submodule.Branch);
-						if (commitId != submodule.LatestCommitId)
+						if (commitId != submodule.LatestCommitId && commitId != updatedSubmodules.GetValueOrDefault(pair.Key))
 						{
 							Log.InfoFormat("Submodule '{0}' has changed from {1} to {2}; waiting for more changes.", pair.Key, submodule.LatestCommitId, commitId);
-							submodulesToUpdate.Add(pair.Key);
-							submodule.LatestCommitId = commitId;
+							updatedSubmodules[pair.Key] = commitId;
 							submoduleChanged = true;
 						}
 					}
@@ -77,12 +76,12 @@ namespace Leeroy
 						continue;
 
 					// if there were updated submodules, create a new commit
-					if (submodulesToUpdate.Count != 0)
+					if (updatedSubmodules.Count != 0)
 					{
 						try
 						{
-							UpdateSubmodules(submodulesToUpdate);
-							submodulesToUpdate.Clear();
+							UpdateSubmodules(updatedSubmodules);
+							updatedSubmodules.Clear();
 						}
 						catch (WatcherException ex)
 						{
@@ -132,7 +131,7 @@ namespace Leeroy
 			m_token.ThrowIfCancellationRequested();
 
 			Log.InfoFormat("Latest commit is {0}; getting details.", m_lastBuildCommitId);
-			GitCommit gitCommit = GitHubClient.GetCommit(m_user, m_repo, m_lastBuildCommitId);
+			GitCommit gitCommit = GitHubClient.GetGitCommit(m_user, m_repo, m_lastBuildCommitId);
 
 			m_token.ThrowIfCancellationRequested();
 
@@ -179,20 +178,20 @@ namespace Leeroy
 			}
 		}
 
-		private void UpdateSubmodules(ICollection<string> paths)
+		private void UpdateSubmodules(IDictionary<string, string> updatedSubmodules)
 		{
-			Log.InfoFormat("Updating the following submodules: {0}.", string.Join(", ", paths));
+			Log.InfoFormat("Updating the following submodules: {0}.", string.Join(", ", updatedSubmodules.Keys));
 
 			// get previous commit (that we will be updating)
-			GitCommit commit = GitHubClient.GetCommit(m_user, m_repo, m_lastBuildCommitId);
+			GitCommit commit = GitHubClient.GetGitCommit(m_user, m_repo, m_lastBuildCommitId);
 			GitTree oldTree = GitHubClient.Get<GitTree>(commit.Tree.Url);
 
 			// add updated submodules
-			List<GitTreeItem> treeItems = new List<GitTreeItem>(paths.Select(path => new GitTreeItem
+			List<GitTreeItem> treeItems = new List<GitTreeItem>(updatedSubmodules.Select(x => new GitTreeItem
 				{
 					Mode = "160000",
-					Path = path,
-					Sha = m_submodules[path].LatestCommitId,
+					Path = x.Key,
+					Sha = x.Value,
 					Type = "commit",
 				}));
 
@@ -224,6 +223,49 @@ namespace Leeroy
 				Log.DebugFormat("New build number blob is {0}", buildVersionBlob.Sha);
 			}
 
+			// create commit message
+			StringBuilder commitMessage = new StringBuilder();
+			commitMessage.AppendLine("Build {0}".FormatInvariant(buildVersion));
+
+			// append details for each repository
+			foreach (var pair in updatedSubmodules)
+			{
+				string submodulePath = pair.Key;
+				Submodule submodule = m_submodules[submodulePath];
+				CommitComparison comparison = GitHubClient.CompareCommits(submodule.User, submodule.Repo, submodule.LatestCommitId, pair.Value);
+				if (comparison != null)
+				{
+					foreach (Commit comparisonCommit in comparison.Commits.Reverse().Take(5))
+					{
+						// read the first line of the commit message
+						string message;
+						using (StringReader reader = new StringReader(comparisonCommit.GitCommit.Message ?? ""))
+							message = reader.ReadLine();
+
+						commitMessage.AppendLine();
+						commitMessage.AppendLine("{0}: {1} ({2})".FormatInvariant(comparisonCommit.GitCommit.Author.Name, message, comparisonCommit.Sha.Substring(0, 8)));
+
+						Commit fullCommit = GitHubClient.GetCommit(submodule.User, submodule.Repo, comparisonCommit.Sha);
+						if (fullCommit != null)
+						{
+							foreach (CommitFile file in fullCommit.Files)
+								commitMessage.AppendLine("  {0}/{1}".FormatInvariant(submodulePath, file.Filename));
+						}
+					}
+
+					if (comparison.TotalCommits > 5)
+					{
+						commitMessage.AppendLine();
+						commitMessage.AppendLine("... and {0} more commits to {1}.".FormatInvariant(comparison.TotalCommits - 5, submodulePath));
+					}
+				}
+				else
+				{
+					commitMessage.AppendLine();
+					commitMessage.AppendLine("Updated {0} from {1} to {2} (no details available).".FormatInvariant(submodulePath, submodule.LatestCommitId.Substring(0, 8), pair.Value.Substring(0, 8)));
+				}
+			}
+
 			// create new tree
 			GitCreateTree newTree = new GitCreateTree
 			{
@@ -238,7 +280,7 @@ namespace Leeroy
 			// create a commit
 			GitCreateCommit createCommit = new GitCreateCommit
 			{
-				Message = "Build {0}\r\n".FormatInvariant(buildVersion),
+				Message = commitMessage.ToString(),
 				Parents = new[] { m_lastBuildCommitId },
 				Tree = tree.Sha,
 			};
@@ -253,6 +295,8 @@ namespace Leeroy
 			{
 				Log.InfoFormat("Build repo updated successfully to commit {0}.", newCommit.Sha);
 				m_lastBuildCommitId = newCommit.Sha;
+				foreach (var pair in updatedSubmodules)
+					m_submodules[pair.Key].LatestCommitId = pair.Value;
 				StartBuild();
 
 				// wait for the build to start, and for gitdata to be updated with the new commit data

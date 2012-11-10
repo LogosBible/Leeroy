@@ -75,6 +75,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ActionExtensions.cs" />
+    <Compile Include="DictionaryExtensions.cs" />
     <Compile Include="GitHubClient.cs" />
     <Compile Include="Installer.cs">
       <SubType>Component</SubType>
@@ -84,13 +85,17 @@
     </Compile>
     <Compile Include="JsonUtility.cs" />
     <Compile Include="Json\BuildProject.cs" />
+    <Compile Include="Json\Commit.cs" />
+    <Compile Include="Json\CommitFile.cs" />
     <Compile Include="Json\GitBlob.cs" />
     <Compile Include="Json\GitCommit.cs" />
     <Compile Include="Json\GitCommitTree.cs" />
+    <Compile Include="Json\CommitComparison.cs" />
     <Compile Include="Json\GitCreateCommit.cs" />
     <Compile Include="Json\GitCreateTree.cs" />
     <Compile Include="Json\GitHubCommit.cs" />
     <Compile Include="Json\GitObject.cs" />
+    <Compile Include="Json\GitCommitPerson.cs" />
     <Compile Include="Json\GitReference.cs" />
     <Compile Include="Json\GitTree.cs" />
     <Compile Include="Json\GitTreeItem.cs" />

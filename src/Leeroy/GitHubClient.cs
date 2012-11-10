@@ -29,9 +29,19 @@ namespace Leeroy
 			}
 		}
 
-		public static GitCommit GetCommit(string user, string repo, string sha)
+		public static Commit GetCommit(string user, string repo, string sha)
+		{
+			return Get<Commit>(@"http://git/api/v3/repos/{0}/{1}/commits/{2}", user, repo, sha);
+		}
+
+		public static GitCommit GetGitCommit(string user, string repo, string sha)
 		{
 			return Get<GitCommit>(@"http://git/api/v3/repos/{0}/{1}/git/commits/{2}", user, repo, sha);
+		}
+
+		public static CommitComparison CompareCommits(string user, string repo, string firstSha, string secondSha)
+		{
+			return Get<CommitComparison>(@"http://git/api/v3/repos/{0}/{1}/compare/{2}...{3}", user, repo, firstSha, secondSha);
 		}
 
 		public static GitBlob CreateBlob(string user, string repo, GitBlob blob)
