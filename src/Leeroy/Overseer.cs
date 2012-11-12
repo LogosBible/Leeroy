@@ -83,7 +83,17 @@ namespace Leeroy
 			{
 				GitBlob blob = GitHubClient.Get<GitBlob>(item.Url);
 
-				BuildProject buildProject = JsonUtility.FromJson<BuildProject>(blob.GetContent());
+				BuildProject buildProject;
+				try
+				{
+					buildProject = JsonUtility.FromJson<BuildProject>(blob.GetContent());
+				}
+				catch (FormatException ex)
+				{
+					Log.ErrorFormat("Couldn't parse '{0}': {1}", ex, item.Path, ex.Message);
+					continue;
+				}
+
 				buildProject.Name = Path.GetFileNameWithoutExtension(item.Path);
 				buildProjects.Add(buildProject);
 				Log.InfoFormat("Added build project: {0}", item.Path);

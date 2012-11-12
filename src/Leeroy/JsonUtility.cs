@@ -26,8 +26,19 @@ namespace Leeroy
 
 		public static object FromJsonTextReader(TextReader textReader, Type type)
 		{
-			using (JsonReader reader = new JsonTextReader(textReader))
-				return Deserialize(reader, type);
+			try
+			{
+				using (JsonReader reader = new JsonTextReader(textReader))
+					return Deserialize(reader, type);
+			}
+			catch (JsonReaderException ex)
+			{
+				throw new FormatException("Error reading JSON.", ex);
+			}
+			catch (JsonSerializationException ex)
+			{
+				throw new FormatException("Error deserializing JSON.", ex);
+			}
 		}
 
 		public static string ToJson<T>(T value)
