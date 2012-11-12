@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net;
+using System.Reflection;
 using System.ServiceProcess;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,7 +14,7 @@ namespace Leeroy
 		public Service()
 		{
 			InitializeComponent();
-			Log.Info("Initializing service.");
+			Log.InfoFormat("Initializing service (version {0}).", Assembly.GetExecutingAssembly().GetName().Version);
 
 			ServicePointManager.DefaultConnectionLimit = 10;
 			GitHubClient.SetCredentials(Settings.Default.UserName, Settings.Default.Password);
