@@ -50,6 +50,7 @@ namespace Leeroy
 
 					// force configuration to be reloaded
 					m_watchers = null;
+					continue;
 				}
 
 				m_token.WaitHandle.WaitOne(TimeSpan.FromSeconds(5));
