@@ -243,13 +243,14 @@ namespace Leeroy
 							message = reader.ReadLine();
 
 						commitMessage.AppendLine();
-						commitMessage.AppendLine("{0}: {1} ({2})".FormatInvariant(comparisonCommit.GitCommit.Author.Name, message, comparisonCommit.Sha.Substring(0, 8)));
+						commitMessage.AppendLine("{0}: {1}".FormatInvariant(comparisonCommit.GitCommit.Author.Name, message));
+						commitMessage.AppendLine("  {0}/{1}".FormatInvariant(submodulePath, comparisonCommit.Sha));
 
 						Commit fullCommit = GitHubClient.GetCommit(submodule.User, submodule.Repo, comparisonCommit.Sha);
 						if (fullCommit != null)
 						{
 							foreach (CommitFile file in fullCommit.Files)
-								commitMessage.AppendLine("  {0}/{1}".FormatInvariant(submodulePath, file.Filename));
+								commitMessage.AppendLine("  {0}".FormatInvariant(file.Filename));
 						}
 					}
 
