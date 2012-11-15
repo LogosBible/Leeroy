@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("Leeroy")]
-[assembly: AssemblyCopyright("Copyright 2012 Bradley Grainger")]
+[assembly: AssemblyCopyright("Copyright 2012 Logos Bible Software")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 [assembly: ComVisible(false)]
