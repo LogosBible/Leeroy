@@ -41,6 +41,12 @@ namespace Leeroy
 			{
 				// check for changes to the build repo itself (and reload the submodules if so)
 				string commitId = GitHubClient.GetLatestCommitId(m_user, m_repo, m_branch);
+				if (commitId == null)
+				{
+					Log.ErrorFormat("Getting last commit ID failed; will stop monitoring project.");
+					break;
+				}
+
 				if (commitId != m_lastBuildCommitId)
 				{
 					if (m_lastBuildCommitId != null)

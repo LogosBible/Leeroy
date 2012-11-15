@@ -21,11 +21,13 @@ namespace Leeroy
 			if (m_useGitData)
 			{
 				Uri url = new Uri(@"http://gitdata.lrscorp.net/commits/latest/git/{0}/{1}/{2}".FormatInvariant(user, repo, branch));
-				return GetString(url).Trim();
+				string commitId = GetString(url);
+				return commitId != null ? commitId.Trim() : null;
 			}
 			else
 			{
-				return Get<GitHubCommit>(@"http://git/api/v3/repos/{0}/{1}/commits/{2}", user, repo, branch).Sha;
+				GitHubCommit commit = Get<GitHubCommit>(@"http://git/api/v3/repos/{0}/{1}/commits/{2}", user, repo, branch);
+				return commit != null ? commit.Sha : null;
 			}
 		}
 
