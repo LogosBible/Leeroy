@@ -162,7 +162,12 @@ namespace Leeroy
 					string path = submodule.Value["path"];
 					string url = submodule.Value["url"];
 					string server, user, repo;
-					SplitRepoUrl(url, out server, out user, out repo);
+
+					if (!SplitRepoUrl(url, out server, out user, out repo))
+					{
+						Log.Error("{0} is not a valid Git URL".FormatInvariant(url));
+						continue;
+					}
 
 					// find submodule in repo, and add it to list of tracked submodules
 					GitTreeItem submoduleItem = tree.Items.FirstOrDefault(x => x.Type == "commit" && x.Mode == "160000" && x.Path == path);
@@ -350,12 +355,14 @@ namespace Leeroy
 				yield return new KeyValuePair<string, Dictionary<string, string>>(currentSection, values);
 		}
 
-		private static void SplitRepoUrl(string url, out string server, out string user, out string repo)
+		private static bool SplitRepoUrl(string url, out string server, out string user, out string repo)
 		{
 			Match m = Regex.Match(url, @"^git@(?'server'[^:]+):(?'user'[^/]+)/(?'repo'.*?)\.git$");
 			server = m.Groups["server"].Value;
 			user = m.Groups["user"].Value;
 			repo = m.Groups["repo"].Value;
+
+			return m.Success;
 		}
 
 		readonly BuildProject m_project;
