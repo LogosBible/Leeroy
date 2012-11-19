@@ -6,7 +6,7 @@ build.
 
 ## Build Repositories
 
-Leeroy is designed to work with a &ldquo;build repository&rdquo;&mdash;a
+Leeroy is designed to work with a &ldquo;[build repository](http://code.logos.com/blog/2012/11/building-code-at-logos-build-repositories.html)&rdquo;&mdash;a
 git repository that contains a text file with the current build number,
 and one or more submodules.
 
