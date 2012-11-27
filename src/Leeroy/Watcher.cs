@@ -62,17 +62,27 @@ namespace Leeroy
 				{
 					// check for changes in the submodules
 					bool submoduleChanged = false;
+					bool submoduleHasError = false;
 					foreach (var pair in m_submodules)
 					{
 						Submodule submodule = pair.Value;
 						commitId = GitHubClient.GetLatestCommitId(submodule.User, submodule.Repo, submodule.Branch);
-						if (commitId != submodule.LatestCommitId && commitId != updatedSubmodules.GetValueOrDefault(pair.Key))
+						if (string.IsNullOrEmpty(commitId))
+						{
+							Log.ErrorFormat("Submodule '{0}' doesn't have a latest commit for branch '{1}'; will stop monitoring project.", pair.Key, submodule.Branch);
+							submoduleHasError = true;
+						}
+						else if (commitId != submodule.LatestCommitId && commitId != updatedSubmodules.GetValueOrDefault(pair.Key))
 						{
 							Log.InfoFormat("Submodule '{0}' has changed from {1} to {2}; waiting for more changes.", pair.Key, submodule.LatestCommitId, commitId);
 							updatedSubmodules[pair.Key] = commitId;
 							submoduleChanged = true;
 						}
 					}
+
+					// abort if there were errors
+					if (submoduleHasError)
+						break;
 
 					// pause for five seconds between each check
 					m_token.WaitHandle.WaitOne(TimeSpan.FromSeconds(5));
