@@ -74,7 +74,7 @@ namespace Leeroy
 						}
 						else if (commitId != submodule.LatestCommitId && commitId != updatedSubmodules.GetValueOrDefault(pair.Key))
 						{
-							Log.InfoFormat("Submodule '{0}' has changed from {1} to {2}; waiting for more changes.", pair.Key, submodule.LatestCommitId, commitId);
+							Log.InfoFormat("Submodule '{0}' has changed from {1} to {2}; waiting for more changes.", pair.Key, submodule.LatestCommitId.Substring(0, 8), commitId.Substring(0, 8));
 							updatedSubmodules[pair.Key] = commitId;
 							submoduleChanged = true;
 						}
