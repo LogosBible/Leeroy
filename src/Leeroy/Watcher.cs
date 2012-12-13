@@ -67,7 +67,7 @@ namespace Leeroy
 					{
 						Submodule submodule = pair.Value;
 						commitId = GitHubClient.GetLatestCommitId(submodule.User, submodule.Repo, submodule.Branch);
-						if (string.IsNullOrEmpty(commitId))
+						if (commitId == null)
 						{
 							Log.ErrorFormat("Submodule '{0}' doesn't have a latest commit for branch '{1}'; will stop monitoring project.", pair.Key, submodule.Branch);
 							submoduleHasError = true;

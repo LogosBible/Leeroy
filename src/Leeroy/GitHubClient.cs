@@ -22,7 +22,7 @@ namespace Leeroy
 			{
 				Uri url = new Uri(@"http://gitdata.lrscorp.net/commits/latest/git/{0}/{1}/{2}".FormatInvariant(user, repo, branch));
 				string commitId = GetString(url);
-				return commitId != null ? commitId.Trim() : null;
+				return !string.IsNullOrWhiteSpace(commitId) ? commitId.Trim() : null;
 			}
 			else
 			{
