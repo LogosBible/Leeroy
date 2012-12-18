@@ -1,0 +1,32 @@
+﻿using System.Net;
+
+namespace Leeroy
+{
+	public static class HttpWebRequestUtility
+	{
+		/// <summary>
+		/// Gets the <see cref="HttpWebResponse"/> from an Internet resource.
+		/// </summary>
+		/// <param name="request">The request.</param>
+		/// <returns>A <see cref="HttpWebResponse"/> that contains the response from the Internet resource.</returns>
+		/// <remarks><para>This method does not throw a <see cref="WebException"/> for "error" HTTP status codes; the caller should
+		/// check the <see cref="HttpWebResponse.StatusCode"/> property to determine how to handle the response.</para>
+		/// <para>From <a href="http://code.logos.com/blog/2009/06/using_if-modified-since_in_http_requests.html">Using
+		/// If-Modified-Since in HTTP Requests</a>.</para></remarks>
+		public static HttpWebResponse GetHttpResponse(this HttpWebRequest request)
+		{
+			try
+			{
+				return (HttpWebResponse) request.GetResponse();
+			}
+			catch (WebException ex)
+			{
+				// only handle protocol errors that have valid responses
+				if (ex.Response == null || ex.Status != WebExceptionStatus.ProtocolError)
+					throw;
+
+				return (HttpWebResponse) ex.Response;
+			}
+		}
+	}
+}

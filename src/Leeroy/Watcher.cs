@@ -122,16 +122,43 @@ namespace Leeroy
 				// GET the build URL, which will start a build
 				Log.InfoFormat("Starting a build via: {0}", uri.AbsoluteUri);
 				HttpWebRequest request = Program.CreateWebRequest(uri);
+				bool logError = true;
+				HttpStatusCode? statusCode = null;
+				WebException exception = null;
 
 				try
 				{
-					using (request.GetResponse())
+					HttpWebResponse response = request.GetHttpResponse();
+					statusCode = response.StatusCode;
+					if (statusCode == HttpStatusCode.OK)
 					{
+						logError = false;
+					}
+					else if (statusCode == HttpStatusCode.InternalServerError)
+					{
+						using (Stream stream = response.GetResponseStream())
+						using (StreamReader reader = new StreamReader(stream, Encoding.ASCII))
+						{
+							string line = reader.ReadLine();
+							if (!string.IsNullOrWhiteSpace(line) && Regex.IsMatch(line.Trim(), @"^java.io.IOException: .*? is not buildable$"))
+							{
+								Log.Warn("Project is disabled; not starting build.");
+								logError = false;
+							}
+						}
 					}
 				}
 				catch (WebException ex)
 				{
-					Log.ErrorFormat("Couldn't start build at: {0}", ex, uri.AbsoluteUri);
+					exception = ex;
+				}
+
+				if (logError)
+				{
+					if (exception != null)
+						Log.ErrorFormat("Couldn't start build at {0}: {1}", exception, uri.AbsoluteUri, statusCode);
+					else
+						Log.ErrorFormat("Couldn't start build at {0}: {1}", uri.AbsoluteUri, statusCode);
 				}
 			}
 		}

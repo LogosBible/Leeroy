@@ -76,6 +76,7 @@
   <ItemGroup>
     <Compile Include="DictionaryExtensions.cs" />
     <Compile Include="GitHubClient.cs" />
+    <Compile Include="HttpWebRequestUtility.cs" />
     <Compile Include="Installer.cs">
       <SubType>Component</SubType>
     </Compile>
