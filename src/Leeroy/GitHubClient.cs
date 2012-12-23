@@ -79,7 +79,14 @@ namespace Leeroy
 			Uri url = new Uri(@"http://git/api/v3/repos/{0}/{1}/git/refs/heads/{2}".FormatInvariant(user, repo, name));
 
 			var request = PostJson(url, json, "PATCH");
-			return Get<GitReference>(url, request);
+			GitReference reference = Get<GitReference>(url, request);
+
+			// now that we've pushed a new branch pointer, force GitData to update its cache (there may be an
+			// unacceptably long delay between updating the reference and GitHub notifying GitData via the webhook)
+			if (m_useGitData)
+				GetString(new Uri(@"http://gitdata.lrscorp.net/commits/latest/git/{0}/{1}/{2}?refreshCache=true".FormatInvariant(user, repo, name)));
+
+			return reference;
 		}
 
 		public static T Get<T>(string url)
