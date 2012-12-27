@@ -11,9 +11,10 @@ namespace Leeroy
 {
 	public sealed class Overseer
 	{
-		public Overseer(CancellationToken token, string user, string repo, string branch)
+		public Overseer(CancellationToken token, BuildServerClient buildServerClient, string user, string repo, string branch)
 		{
 			m_token = token;
+			m_buildServerClient = buildServerClient;
 			m_user = user;
 			m_repo = repo;
 			m_branch = branch;
@@ -114,7 +115,7 @@ namespace Leeroy
 			List<Task> watchers = new List<Task>();
 			foreach (BuildProject project in projects)
 			{
-				Watcher watcher = new Watcher(project, linkedToken);
+				Watcher watcher = new Watcher(project, m_buildServerClient, linkedToken);
 				watchers.Add(watcher.CreateTask());
 			}
 
@@ -123,6 +124,7 @@ namespace Leeroy
 		}
 
 		readonly CancellationToken m_token;
+		readonly BuildServerClient m_buildServerClient;
 		readonly string m_user;
 		readonly string m_repo;
 		readonly string m_branch;

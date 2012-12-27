@@ -74,6 +74,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BuildServerClient.cs" />
     <Compile Include="DictionaryExtensions.cs" />
     <Compile Include="GitHubClient.cs" />
     <Compile Include="HttpWebRequestUtility.cs" />

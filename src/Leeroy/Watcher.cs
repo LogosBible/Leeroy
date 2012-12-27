@@ -17,9 +17,10 @@ namespace Leeroy
 	/// </summary>
 	public class Watcher
 	{
-		public Watcher(BuildProject project, CancellationToken token)
+		public Watcher(BuildProject project, BuildServerClient buildServerClient, CancellationToken token)
 		{
 			m_project = project;
+			m_buildServerClient = buildServerClient;
 			SplitRepoUrl(m_project.RepoUrl, out m_server, out m_user, out m_repo);
 			m_branch = m_project.Branch ?? "master";
 			m_token = token;
@@ -118,49 +119,7 @@ namespace Leeroy
 				uris.Add(m_project.BuildUrl);
 
 			foreach (Uri uri in uris)
-			{
-				// GET the build URL, which will start a build
-				Log.InfoFormat("Starting a build via: {0}", uri.AbsoluteUri);
-				HttpWebRequest request = Program.CreateWebRequest(uri);
-				bool logError = true;
-				HttpStatusCode? statusCode = null;
-				WebException exception = null;
-
-				try
-				{
-					HttpWebResponse response = request.GetHttpResponse();
-					statusCode = response.StatusCode;
-					if (statusCode == HttpStatusCode.OK)
-					{
-						logError = false;
-					}
-					else if (statusCode == HttpStatusCode.InternalServerError)
-					{
-						using (Stream stream = response.GetResponseStream())
-						using (StreamReader reader = new StreamReader(stream, Encoding.ASCII))
-						{
-							string line = reader.ReadLine();
-							if (!string.IsNullOrWhiteSpace(line) && Regex.IsMatch(line.Trim(), @"^java.io.IOException: .*? is not buildable$"))
-							{
-								Log.Warn("Project is disabled; not starting build.");
-								logError = false;
-							}
-						}
-					}
-				}
-				catch (WebException ex)
-				{
-					exception = ex;
-				}
-
-				if (logError)
-				{
-					if (exception != null)
-						Log.ErrorFormat("Couldn't start build at {0}: {1}", exception, uri.AbsoluteUri, statusCode);
-					else
-						Log.ErrorFormat("Couldn't start build at {0}: {1}", uri.AbsoluteUri, statusCode);
-				}
-			}
+				m_buildServerClient.QueueBuild(uri);
 		}
 
 		// Gets the list of all submodules in the build repo.
@@ -403,6 +362,7 @@ namespace Leeroy
 		}
 
 		readonly BuildProject m_project;
+		readonly BuildServerClient m_buildServerClient;
 		readonly string m_server;
 		readonly string m_user;
 		readonly string m_repo;

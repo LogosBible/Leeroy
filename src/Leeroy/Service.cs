@@ -25,7 +25,8 @@ namespace Leeroy
 			Log.Info("Starting service.");
 
 			m_tokenSource = new CancellationTokenSource();
-			Overseer overseer = new Overseer(m_tokenSource.Token, "BradleyGrainger", "Configuration", "master");
+			BuildServerClient buildServerClient = new BuildServerClient(m_tokenSource.Token);
+			Overseer overseer = new Overseer(m_tokenSource.Token, buildServerClient, "BradleyGrainger", "Configuration", "master");
 			m_task = Task.Factory.StartNew(Program.FailOnException<object>(overseer.Run), m_tokenSource, TaskCreationOptions.LongRunning);
 		}
 
