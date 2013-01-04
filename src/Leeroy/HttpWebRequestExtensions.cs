@@ -2,7 +2,10 @@
 
 namespace Leeroy
 {
-	public static class HttpWebRequestUtility
+	/// <summary>
+	/// Provides extension methods for working with <see cref="HttpWebResponse"/> objects.
+	/// </summary>
+	public static class HttpWebRequestExtensions
 	{
 		/// <summary>
 		/// Gets the <see cref="HttpWebResponse"/> from an Internet resource.
