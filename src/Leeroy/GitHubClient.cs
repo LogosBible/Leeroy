@@ -127,6 +127,7 @@ namespace Leeroy
 			catch (WebException ex)
 			{
 				Log.ErrorFormat("Error requesting {0}.", ex, uri.AbsoluteUri);
+				ex.DisposeResponse();
 			}
 
 			return default(T);
@@ -145,6 +146,7 @@ namespace Leeroy
 			catch (WebException ex)
 			{
 				Log.ErrorFormat("Error requesting {0}.", ex, uri.AbsoluteUri);
+				ex.DisposeResponse();
 			}
 
 			return null;

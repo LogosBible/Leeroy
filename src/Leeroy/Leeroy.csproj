@@ -76,6 +76,7 @@
   <ItemGroup>
     <Compile Include="BuildServerClient.cs" />
     <Compile Include="DictionaryExtensions.cs" />
+    <Compile Include="ExceptionExtensions.cs" />
     <Compile Include="GitHubClient.cs" />
     <Compile Include="HttpWebRequestUtility.cs" />
     <Compile Include="Installer.cs">

@@ -135,6 +135,7 @@ namespace Leeroy
 			}
 			catch (WebException ex)
 			{
+				ex.DisposeResponse();
 				exception = ex;
 			}
 
