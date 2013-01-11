@@ -113,22 +113,24 @@ namespace Leeroy
 
 			try
 			{
-				HttpWebResponse response = request.GetHttpResponse();
-				statusCode = response.StatusCode;
-				if (statusCode == HttpStatusCode.OK)
+				using (HttpWebResponse response = request.GetHttpResponse())
 				{
-					failed = false;
-				}
-				else if (statusCode == HttpStatusCode.InternalServerError)
-				{
-					using (Stream stream = response.GetResponseStream())
-					using (StreamReader reader = new StreamReader(stream, Encoding.ASCII))
+					statusCode = response.StatusCode;
+					if (statusCode == HttpStatusCode.OK)
 					{
-						string line = reader.ReadLine();
-						if (!string.IsNullOrWhiteSpace(line) && Regex.IsMatch(line.Trim(), @"^java.io.IOException: .*? is not buildable$"))
+						failed = false;
+					}
+					else if (statusCode == HttpStatusCode.InternalServerError)
+					{
+						using (Stream stream = response.GetResponseStream())
+						using (StreamReader reader = new StreamReader(stream, Encoding.ASCII))
 						{
-							Log.Warn("Project is disabled; not starting build.");
-							failed = false;
+							string line = reader.ReadLine();
+							if (!string.IsNullOrWhiteSpace(line) && Regex.IsMatch(line.Trim(), @"^java.io.IOException: .*? is not buildable$"))
+							{
+								Log.Warn("Project is disabled; not starting build.");
+								failed = false;
+							}
 						}
 					}
 				}
