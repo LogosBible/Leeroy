@@ -96,9 +96,16 @@ namespace Leeroy
 					continue;
 				}
 
-				buildProject.Name = Path.GetFileNameWithoutExtension(item.Path);
-				buildProjects.Add(buildProject);
-				Log.InfoFormat("Added build project: {0}", item.Path);
+				if (!buildProject.Disabled)
+				{
+					buildProject.Name = Path.GetFileNameWithoutExtension(item.Path);
+					buildProjects.Add(buildProject);
+					Log.InfoFormat("Added build project: {0}", item.Path);
+				}
+				else
+				{
+					Log.InfoFormat("Ignoring disabled build project: {0}", item.Path);
+				}
 			}
 
 			return buildProjects;

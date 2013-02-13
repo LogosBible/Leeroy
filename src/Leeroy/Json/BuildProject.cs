@@ -7,6 +7,8 @@ namespace Leeroy.Json
 	{
 		public string Name { get; set; }
 
+		public bool Disabled { get; set; }
+
 		public Uri BuildUrl { get; set; }
 
 		public Uri[] BuildUrls { get; set; }
