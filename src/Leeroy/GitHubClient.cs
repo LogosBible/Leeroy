@@ -4,6 +4,8 @@ using System.Net;
 using System.Text;
 using Common.Logging;
 using Leeroy.Json;
+using Logos.Utility;
+using Logos.Utility.Net;
 using Newtonsoft.Json;
 
 namespace Leeroy
