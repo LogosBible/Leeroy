@@ -56,11 +56,20 @@
     <Reference Include="Common.Logging.Log4Net">
       <HintPath>..\..\packages\Common.Logging.Log4Net.2.0.1\lib\net20\Common.Logging.Log4Net.dll</HintPath>
     </Reference>
+    <Reference Include="LibGit2Sharp, Version=0.9.5.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\packages\LibGit2Sharp.0.9.5\lib\net35\LibGit2Sharp.dll</HintPath>
+    </Reference>
     <Reference Include="log4net">
       <HintPath>..\..\packages\log4net.1.2.10\lib\2.0\log4net.dll</HintPath>
     </Reference>
-    <Reference Include="Logos.Utility">
-      <HintPath>..\..\packages\Logos.Utility.1.1.0\lib\net40\Logos.Utility.dll</HintPath>
+    <Reference Include="Logos.Git, Version=0.3.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\packages\Logos.Git.0.3.0\lib\net40\Logos.Git.dll</HintPath>
+    </Reference>
+    <Reference Include="Logos.Utility, Version=1.2.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\packages\Logos.Utility.1.2.0\lib\net40\Logos.Utility.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=4.5.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -80,30 +89,13 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BuildServerClient.cs" />
-    <Compile Include="GitHubClient.cs" />
     <Compile Include="Installer.cs">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Installer.Designer.cs">
       <DependentUpon>Installer.cs</DependentUpon>
     </Compile>
-    <Compile Include="JsonUtility.cs" />
     <Compile Include="Json\BuildProject.cs" />
-    <Compile Include="Json\Commit.cs" />
-    <Compile Include="Json\CommitFile.cs" />
-    <Compile Include="Json\GitBlob.cs" />
-    <Compile Include="Json\GitCommit.cs" />
-    <Compile Include="Json\GitCommitTree.cs" />
-    <Compile Include="Json\CommitComparison.cs" />
-    <Compile Include="Json\GitCreateCommit.cs" />
-    <Compile Include="Json\GitCreateTree.cs" />
-    <Compile Include="Json\GitHubCommit.cs" />
-    <Compile Include="Json\GitObject.cs" />
-    <Compile Include="Json\GitCommitPerson.cs" />
-    <Compile Include="Json\GitReference.cs" />
-    <Compile Include="Json\GitTree.cs" />
-    <Compile Include="Json\GitTreeItem.cs" />
-    <Compile Include="Json\GitUpdateReference.cs" />
     <Compile Include="Overseer.cs" />
     <Compile Include="Properties\Settings.Designer.cs">
       <AutoGen>True</AutoGen>
@@ -137,6 +129,14 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\nuget.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>
+if not exist "$(TargetDir)NativeBinaries" md "$(TargetDir)NativeBinaries"
+if not exist "$(TargetDir)NativeBinaries\x86" md "$(TargetDir)NativeBinaries\x86"
+xcopy /s /y "$(SolutionDir)packages\LibGit2Sharp.0.9.5\NativeBinaries\x86\*.*" "$(TargetDir)NativeBinaries\x86"
+if not exist "$(TargetDir)NativeBinaries\amd64" md "$(TargetDir)NativeBinaries\amd64"
+xcopy /s /y "$(SolutionDir)packages\LibGit2Sharp.0.9.5\NativeBinaries\amd64\*.*" "$(TargetDir)NativeBinaries\amd64"</PostBuildEvent>
+  </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

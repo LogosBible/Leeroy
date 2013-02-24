@@ -6,15 +6,18 @@ using System.Threading;
 using System.Threading.Tasks;
 using Common.Logging;
 using Leeroy.Json;
+using Logos.Git;
+using Logos.Git.GitHub;
 
 namespace Leeroy
 {
 	public sealed class Overseer
 	{
-		public Overseer(CancellationToken token, BuildServerClient buildServerClient, string user, string repo, string branch)
+		public Overseer(CancellationToken token, BuildServerClient buildServerClient, GitHubClient gitHubClient, string user, string repo, string branch)
 		{
 			m_token = token;
 			m_buildServerClient = buildServerClient;
+			m_gitHubClient = gitHubClient;
 			m_user = user;
 			m_repo = repo;
 			m_branch = branch;
@@ -33,7 +36,7 @@ namespace Leeroy
 					CreateWatchers(projects);
 				}
 
-				string commitId = GitHubClient.GetLatestCommitId(m_user, m_repo, m_branch);
+				string commitId = m_gitHubClient.GetLatestCommitId(m_user, m_repo, m_branch);
 				if (commitId != m_lastConfigurationCommitId)
 				{
 					Log.InfoFormat("Configuration repo commit ID has changed from {0} to {1}; reloading configuration.", m_lastConfigurationCommitId, commitId);
@@ -61,17 +64,17 @@ namespace Leeroy
 		private List<BuildProject> LoadConfiguration()
 		{
 			Log.InfoFormat("Getting latest commit for {0}/{1}/{2}.", m_user, m_repo, m_branch);
-			m_lastConfigurationCommitId = GitHubClient.GetLatestCommitId(m_user, m_repo, m_branch);
+			m_lastConfigurationCommitId = m_gitHubClient.GetLatestCommitId(m_user, m_repo, m_branch);
 
 			m_token.ThrowIfCancellationRequested();
 
 			Log.InfoFormat("Latest commit is {0}; getting details.", m_lastConfigurationCommitId);
-			GitCommit gitCommit = GitHubClient.GetGitCommit(m_user, m_repo, m_lastConfigurationCommitId);
+			GitCommit gitCommit = m_gitHubClient.GetGitCommit(m_user, m_repo, m_lastConfigurationCommitId);
 
 			m_token.ThrowIfCancellationRequested();
 
 			Log.DebugFormat("Fetching commit tree ({0}).", gitCommit.Tree.Sha);
-			GitTree tree = GitHubClient.Get<GitTree>(gitCommit.Tree.Url);
+			GitTree tree = m_gitHubClient.GetTree(gitCommit);
 
 			m_token.ThrowIfCancellationRequested();
 
@@ -83,7 +86,7 @@ namespace Leeroy
 
 			foreach (GitTreeItem item in tree.Items.Where(x => x.Type == "blob" && x.Path.EndsWith(".json", StringComparison.OrdinalIgnoreCase)))
 			{
-				GitBlob blob = GitHubClient.Get<GitBlob>(item.Url);
+				GitBlob blob = m_gitHubClient.GetBlob(item);
 
 				BuildProject buildProject;
 				try
@@ -122,7 +125,7 @@ namespace Leeroy
 			List<Task> watchers = new List<Task>();
 			foreach (BuildProject project in projects)
 			{
-				Watcher watcher = new Watcher(project, m_buildServerClient, linkedToken);
+				Watcher watcher = new Watcher(project, m_buildServerClient, m_gitHubClient, linkedToken);
 				watchers.Add(watcher.CreateTask());
 			}
 
@@ -132,6 +135,7 @@ namespace Leeroy
 
 		readonly CancellationToken m_token;
 		readonly BuildServerClient m_buildServerClient;
+		readonly GitHubClient m_gitHubClient;
 		readonly string m_user;
 		readonly string m_repo;
 		readonly string m_branch;
