@@ -4,10 +4,10 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Common.Logging;
 using Leeroy.Json;
 using Logos.Git;
 using Logos.Git.GitHub;
+using Logos.Utility.Logging;
 
 namespace Leeroy
 {
@@ -39,7 +39,7 @@ namespace Leeroy
 				string commitId = m_gitHubClient.GetLatestCommitId(m_user, m_repo, m_branch);
 				if (commitId != m_lastConfigurationCommitId)
 				{
-					Log.InfoFormat("Configuration repo commit ID has changed from {0} to {1}; reloading configuration.", m_lastConfigurationCommitId, commitId);
+					Log.Info("Configuration repo commit ID has changed from {0} to {1}; reloading configuration.", m_lastConfigurationCommitId, commitId);
 
 					// cancel existing work
 					m_currentConfigurationTokenSource.Cancel();
@@ -63,22 +63,22 @@ namespace Leeroy
 
 		private List<BuildProject> LoadConfiguration()
 		{
-			Log.InfoFormat("Getting latest commit for {0}/{1}/{2}.", m_user, m_repo, m_branch);
+			Log.Info("Getting latest commit for {0}/{1}/{2}.", m_user, m_repo, m_branch);
 			m_lastConfigurationCommitId = m_gitHubClient.GetLatestCommitId(m_user, m_repo, m_branch);
 
 			m_token.ThrowIfCancellationRequested();
 
-			Log.InfoFormat("Latest commit is {0}; getting details.", m_lastConfigurationCommitId);
+			Log.Info("Latest commit is {0}; getting details.", m_lastConfigurationCommitId);
 			GitCommit gitCommit = m_gitHubClient.GetGitCommit(m_user, m_repo, m_lastConfigurationCommitId);
 
 			m_token.ThrowIfCancellationRequested();
 
-			Log.DebugFormat("Fetching commit tree ({0}).", gitCommit.Tree.Sha);
+			Log.Debug("Fetching commit tree ({0}).", gitCommit.Tree.Sha);
 			GitTree tree = m_gitHubClient.GetTree(gitCommit);
 
 			m_token.ThrowIfCancellationRequested();
 
-			Log.DebugFormat("Tree has {0} items:", tree.Items.Length);
+			Log.Debug("Tree has {0} items:", tree.Items.Length);
 			foreach (GitTreeItem item in tree.Items)
 				Log.Debug(item.Path);
 
@@ -95,7 +95,7 @@ namespace Leeroy
 				}
 				catch (FormatException ex)
 				{
-					Log.ErrorFormat("Couldn't parse '{0}': {1}", ex, item.Path, ex.Message);
+					Log.Error("Couldn't parse '{0}': {1}", ex, item.Path, ex.Message);
 					continue;
 				}
 
@@ -103,11 +103,11 @@ namespace Leeroy
 				{
 					buildProject.Name = Path.GetFileNameWithoutExtension(item.Path);
 					buildProjects.Add(buildProject);
-					Log.InfoFormat("Added build project: {0}", item.Path);
+					Log.Info("Added build project: {0}", item.Path);
 				}
 				else
 				{
-					Log.InfoFormat("Ignoring disabled build project: {0}", item.Path);
+					Log.Info("Ignoring disabled build project: {0}", item.Path);
 				}
 			}
 
@@ -145,6 +145,6 @@ namespace Leeroy
 		CancellationTokenSource m_currentConfigurationTokenSource;
 		List<Task> m_watchers;
 
-		static readonly ILog Log = LogManager.GetLogger("Overseer");
+		static readonly Logger Log = LogManager.GetLogger("Overseer");
 	}
 }

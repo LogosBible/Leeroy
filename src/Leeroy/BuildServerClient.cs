@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using Common.Logging;
+using Logos.Utility.Logging;
 using Logos.Utility.Net;
 
 namespace Leeroy
@@ -28,7 +28,7 @@ namespace Leeroy
 
 		public void QueueBuild(Uri uri, TimeSpan delay)
 		{
-			Log.DebugFormat("Queueing build URL with delay of {0}: {1}", delay, uri.AbsoluteUri);
+			Log.Debug("Queueing build URL with delay of {0}: {1}", delay, uri.AbsoluteUri);
 			DateTime time = DateTime.UtcNow + delay;
 			lock (m_lock)
 			{
@@ -53,7 +53,7 @@ namespace Leeroy
 
 				if (insertIndex != -1)
 				{
-					Log.DebugFormat("Queueing build URI '{0}' at index {1}.", uri.AbsoluteUri, insertIndex);
+					Log.Debug("Queueing build URI '{0}' at index {1}.", uri.AbsoluteUri, insertIndex);
 					m_uris.Insert(insertIndex, new UriTime(uri, time));
 					Monitor.Pulse(m_lock);
 				}
@@ -62,7 +62,7 @@ namespace Leeroy
 
 		private void Run(object obj)
 		{
-			Log.InfoFormat("Starting BuildServerClient background task.");
+			Log.Info("Starting BuildServerClient background task.");
 			CancellationToken token = (CancellationToken) obj;
 			while (!token.IsCancellationRequested)
 			{
@@ -105,7 +105,7 @@ namespace Leeroy
 		private void StartBuild(Uri uri)
 		{
 			// GET the build URL, which will start a build
-			Log.InfoFormat("Starting a build via: {0}", uri.AbsoluteUri);
+			Log.Info("Starting a build via: {0}", uri.AbsoluteUri);
 			HttpWebRequest request = Program.CreateWebRequest(uri);
 			request.Timeout = (int) TimeSpan.FromSeconds(5).TotalMilliseconds;
 			bool failed = true;
@@ -145,9 +145,9 @@ namespace Leeroy
 			if (failed)
 			{
 				if (exception != null)
-					Log.WarnFormat("Couldn't start build at {0}: {1}", exception, uri.AbsoluteUri, statusCode);
+					Log.Warn("Couldn't start build at {0}: {1}", exception, uri.AbsoluteUri, statusCode);
 				else
-					Log.WarnFormat("Couldn't start build at {0}: {1}", uri.AbsoluteUri, statusCode);
+					Log.Warn("Couldn't start build at {0}: {1}", uri.AbsoluteUri, statusCode);
 
 				// try again after a delay
 				QueueBuild(uri, TimeSpan.FromSeconds(30));
@@ -179,6 +179,6 @@ namespace Leeroy
 		readonly object m_lock;
 		readonly List<UriTime> m_uris;
 
-		static readonly ILog Log = LogManager.GetLogger("BuildServerClient");
+		static readonly Logger Log = LogManager.GetLogger("BuildServerClient");
 	}
 }

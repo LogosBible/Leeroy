@@ -6,10 +6,10 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using Common.Logging;
 using Leeroy.Json;
 using Logos.Git.GitHub;
 using Logos.Utility;
+using Logos.Utility.Logging;
 
 namespace Leeroy
 {
@@ -28,7 +28,7 @@ namespace Leeroy
 			m_token = token;
 			m_submodules = new Dictionary<string, Submodule>();
 			Log = LogManager.GetLogger("Watcher/{0}".FormatInvariant(m_project.Name));
-			Log.InfoFormat("Watching '{0}' branch in {1}/{2}.", m_branch, m_user, m_repo);
+			Log.Info("Watching '{0}' branch in {1}/{2}.", m_branch, m_user, m_repo);
 		}
 
 		public Task CreateTask()
@@ -46,7 +46,7 @@ namespace Leeroy
 				string commitId = m_gitHubClient.GetLatestCommitId(m_user, m_repo, m_branch);
 				if (commitId == null)
 				{
-					Log.ErrorFormat("Getting last commit ID failed; will stop monitoring project.");
+					Log.Error("Getting last commit ID failed; will stop monitoring project.");
 					break;
 				}
 
@@ -54,7 +54,7 @@ namespace Leeroy
 				{
 					if (m_lastBuildCommitId != null)
 					{
-						Log.InfoFormat("Build repo commit ID has changed from {0} to {1}; reloading submodules.", m_lastBuildCommitId, commitId);
+						Log.Info("Build repo commit ID has changed from {0} to {1}; reloading submodules.", m_lastBuildCommitId, commitId);
 						StartBuild();
 					}
 
@@ -72,12 +72,12 @@ namespace Leeroy
 						commitId = m_gitHubClient.GetLatestCommitId(submodule.User, submodule.Repo, submodule.Branch);
 						if (commitId == null)
 						{
-							Log.ErrorFormat("Submodule '{0}' doesn't have a latest commit for branch '{1}'; will stop monitoring project.", pair.Key, submodule.Branch);
+							Log.Error("Submodule '{0}' doesn't have a latest commit for branch '{1}'; will stop monitoring project.", pair.Key, submodule.Branch);
 							submoduleHasError = true;
 						}
 						else if (commitId != submodule.LatestCommitId && commitId != updatedSubmodules.GetValueOrDefault(pair.Key))
 						{
-							Log.InfoFormat("Submodule '{0}' has changed from {1} to {2}; waiting for more changes.", pair.Key, submodule.LatestCommitId.Substring(0, 8), commitId.Substring(0, 8));
+							Log.Info("Submodule '{0}' has changed from {1} to {2}; waiting for more changes.", pair.Key, submodule.LatestCommitId.Substring(0, 8), commitId.Substring(0, 8));
 							updatedSubmodules[pair.Key] = commitId;
 							submoduleChanged = true;
 						}
@@ -129,17 +129,17 @@ namespace Leeroy
 		{
 			m_submodules.Clear();
 
-			Log.InfoFormat("Getting latest commit.", m_user, m_repo, m_branch);
+			Log.Info("Getting latest commit.", m_user, m_repo, m_branch);
 			m_lastBuildCommitId = m_gitHubClient.GetLatestCommitId(m_user, m_repo, m_branch);
 
 			m_token.ThrowIfCancellationRequested();
 
-			Log.InfoFormat("Latest commit is {0}; getting details.", m_lastBuildCommitId);
+			Log.Info("Latest commit is {0}; getting details.", m_lastBuildCommitId);
 			GitCommit gitCommit = m_gitHubClient.GetGitCommit(m_user, m_repo, m_lastBuildCommitId);
 
 			m_token.ThrowIfCancellationRequested();
 
-			Log.DebugFormat("Fetching commit tree ({0}).", gitCommit.Tree.Sha);
+			Log.Debug("Fetching commit tree ({0}).", gitCommit.Tree.Sha);
 			GitTree tree = m_gitHubClient.GetTree(gitCommit);
 
 			m_token.ThrowIfCancellationRequested();
@@ -147,7 +147,7 @@ namespace Leeroy
 			GitTreeItem gitModulesItem = tree.Items.FirstOrDefault(x => x.Type == "blob" && x.Path == ".gitmodules");
 			if (gitModulesItem == null)
 			{
-				Log.ErrorFormat("Tree {0} doesn't contain a .gitmodules file.", gitCommit.Tree.Sha);
+				Log.Error("Tree {0} doesn't contain a .gitmodules file.", gitCommit.Tree.Sha);
 				return;
 			}
 
@@ -171,7 +171,7 @@ namespace Leeroy
 					GitTreeItem submoduleItem = tree.Items.FirstOrDefault(x => x.Type == "commit" && x.Mode == "160000" && x.Path == path);
 					if (submoduleItem == null)
 					{
-						Log.WarnFormat(".gitmodules contains [{0}] but there is no submodule at path '{1}'.", submodule.Key, path);
+						Log.Warn(".gitmodules contains [{0}] but there is no submodule at path '{1}'.", submodule.Key, path);
 					}
 					else
 					{
@@ -180,7 +180,7 @@ namespace Leeroy
 						if (m_project.SubmoduleBranches == null || !m_project.SubmoduleBranches.TryGetValue(path, out branch))
 							branch = m_branch;
 
-						Log.InfoFormat("Adding new submodule: '{0}' = '{1}'.", path, url);
+						Log.Info("Adding new submodule: '{0}' = '{1}'.", path, url);
 						m_submodules.Add(path, new Submodule { Url = url, User = user, Repo = repo, Branch = branch, LatestCommitId = submoduleItem.Sha });
 					}
 				}
@@ -189,7 +189,7 @@ namespace Leeroy
 
 		private void UpdateSubmodules(IDictionary<string, string> updatedSubmodules)
 		{
-			Log.InfoFormat("Updating the following submodules: {0}.", string.Join(", ", updatedSubmodules.Keys));
+			Log.Info("Updating the following submodules: {0}.", string.Join(", ", updatedSubmodules.Keys));
 
 			// get previous commit (that we will be updating)
 			GitCommit commit = m_gitHubClient.GetGitCommit(m_user, m_repo, m_lastBuildCommitId);
@@ -213,7 +213,7 @@ namespace Leeroy
 				GitBlob buildVersionBlob = m_gitHubClient.GetBlob(buildVersionItem);
 				buildVersion = int.Parse(buildVersionBlob.GetContent().Trim());
 				buildVersion++;
-				Log.DebugFormat("Updating build number to {0}.", buildVersion);
+				Log.Debug("Updating build number to {0}.", buildVersion);
 
 				string buildVersionString = "{0}\r\n".FormatInvariant(buildVersion);
 				string base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(buildVersionString));
@@ -229,7 +229,7 @@ namespace Leeroy
 					Sha = newBuildVersionBlob.Sha,
 					Type = "blob",
 				});
-				Log.DebugFormat("New build number blob is {0}", buildVersionBlob.Sha);
+				Log.Debug("New build number blob is {0}", buildVersionBlob.Sha);
 			}
 
 			// create commit message
@@ -285,7 +285,7 @@ namespace Leeroy
 			GitTree tree = m_gitHubClient.CreateTree(m_user, m_repo, newTree);
 			if (tree == null)
 				throw new WatcherException("Couldn't create new tree.");
-			Log.DebugFormat("Created new tree: {0}.", tree.Sha);
+			Log.Debug("Created new tree: {0}.", tree.Sha);
 
 			// create a commit
 			GitCreateCommit createCommit = new GitCreateCommit
@@ -297,13 +297,13 @@ namespace Leeroy
 			GitCommit newCommit = m_gitHubClient.CreateCommit(m_user, m_repo, createCommit);
 			if (newCommit == null)
 				throw new WatcherException("Couldn't create new commit.");
-			Log.InfoFormat("Created new commit for build {0}: {1}; moving branch.", buildVersion, newCommit.Sha);
+			Log.Info("Created new commit for build {0}: {1}; moving branch.", buildVersion, newCommit.Sha);
 
 			// advance the branch pointer to the new commit
 			GitReference reference = m_gitHubClient.UpdateReference(m_user, m_repo, m_branch, new GitUpdateReference { Sha = newCommit.Sha });
 			if (reference != null && reference.Object.Sha == newCommit.Sha)
 			{
-				Log.InfoFormat("Build repo updated successfully to commit {0}.", newCommit.Sha);
+				Log.Info("Build repo updated successfully to commit {0}.", newCommit.Sha);
 				m_lastBuildCommitId = newCommit.Sha;
 				foreach (var pair in updatedSubmodules)
 					m_submodules[pair.Key].LatestCommitId = pair.Value;
@@ -345,7 +345,7 @@ namespace Leeroy
 				}
 				else
 				{
-					Log.WarnFormat("Couldn't parse .gitmodules line: {0}", line);
+					Log.Warn("Couldn't parse .gitmodules line: {0}", line);
 				}
 			}
 
@@ -372,7 +372,7 @@ namespace Leeroy
 		readonly string m_branch;
 		readonly CancellationToken m_token;
 		readonly Dictionary<string, Submodule> m_submodules;
-		readonly ILog Log = LogManager.GetLogger("Watcher");
+		readonly Logger Log;
 
 		string m_lastBuildCommitId;
 	}

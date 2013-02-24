@@ -3,7 +3,7 @@ using System.Linq;
 using System.Net;
 using System.Runtime.InteropServices;
 using System.ServiceProcess;
-using Common.Logging;
+using Logos.Utility.Logging;
 
 namespace Leeroy
 {
@@ -47,13 +47,13 @@ namespace Leeroy
 				}
 				catch (Exception ex)
 				{
-					Log.Fatal("Unhandled exception in background work.", ex);
+					Log.Error("Unhandled exception in background work: {0}", ex.Message);
 					Environment.FailFast("Unhandled exception in background work.", ex);
 				}
 			};
 		}
 
-		static readonly ILog Log = LogManager.GetCurrentClassLogger();
+		static readonly Logger Log = LogManager.GetLogger("Program");
 
 		[DllImport("user32.dll", CharSet = CharSet.Auto)]
 		private static extern int MessageBox(IntPtr hWnd, String text, String caption, int options);

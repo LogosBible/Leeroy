@@ -4,9 +4,9 @@ using System.Reflection;
 using System.ServiceProcess;
 using System.Threading;
 using System.Threading.Tasks;
-using Common.Logging;
 using Leeroy.Properties;
 using Logos.Git.GitHub;
+using Logos.Utility.Logging;
 
 namespace Leeroy
 {
@@ -15,9 +15,8 @@ namespace Leeroy
 		public Service()
 		{
 			InitializeComponent();
-			Log.InfoFormat("Initializing service (version {0}).", Assembly.GetExecutingAssembly().GetName().Version);
-
 			Logos.Utility.Logging.LogManager.Initialize(LoggerProxy.Create);
+			Log.Info("Initializing service (version {0}).", Assembly.GetExecutingAssembly().GetName().Version);
 
 			ServicePointManager.DefaultConnectionLimit = 10;
 			m_gitHubClient = new GitHubClient(new Uri("http://git/api/v3/"), Settings.Default.UserName, Settings.Default.Password)
@@ -70,6 +69,6 @@ namespace Leeroy
 		CancellationTokenSource m_tokenSource;
 		Task m_task;
 
-		static readonly ILog Log = LogManager.GetCurrentClassLogger();
+		static readonly Logger Log = LogManager.GetLogger("Service");
 	}
 }
