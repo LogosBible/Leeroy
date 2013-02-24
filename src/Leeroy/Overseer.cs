@@ -83,8 +83,8 @@ namespace Leeroy
 				Log.Debug(item.Path);
 
 			List<BuildProject> buildProjects = new List<BuildProject>();
-
-			foreach (GitTreeItem item in tree.Items.Where(x => x.Type == "blob" && x.Path.EndsWith(".json", StringComparison.OrdinalIgnoreCase)))
+			object buildProjectsLock = new object();
+			Parallel.ForEach(tree.Items.Where(x => x.Type == "blob" && x.Path.EndsWith(".json", StringComparison.OrdinalIgnoreCase)), item =>
 			{
 				GitBlob blob = m_gitHubClient.GetBlob(item);
 
@@ -96,20 +96,21 @@ namespace Leeroy
 				catch (FormatException ex)
 				{
 					Log.Error("Couldn't parse '{0}': {1}", ex, item.Path, ex.Message);
-					continue;
+					return;
 				}
 
 				if (!buildProject.Disabled)
 				{
 					buildProject.Name = Path.GetFileNameWithoutExtension(item.Path);
-					buildProjects.Add(buildProject);
+					lock (buildProjectsLock)
+						buildProjects.Add(buildProject);
 					Log.Info("Added build project: {0}", item.Path);
 				}
 				else
 				{
 					Log.Info("Ignoring disabled build project: {0}", item.Path);
 				}
-			}
+			});
 
 			return buildProjects;
 		}
