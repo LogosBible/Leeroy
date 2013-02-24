@@ -17,6 +17,8 @@ namespace Leeroy
 			InitializeComponent();
 			Log.InfoFormat("Initializing service (version {0}).", Assembly.GetExecutingAssembly().GetName().Version);
 
+			Logos.Utility.Logging.LogManager.Initialize(LoggerProxy.Create);
+
 			ServicePointManager.DefaultConnectionLimit = 10;
 			m_gitHubClient = new GitHubClient(new Uri("http://git/api/v3/"), Settings.Default.UserName, Settings.Default.Password)
 			{

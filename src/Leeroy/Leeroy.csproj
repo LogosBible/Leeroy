@@ -89,6 +89,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BuildServerClient.cs" />
+    <Compile Include="LoggerProxy.cs" />
     <Compile Include="Installer.cs">
       <SubType>Component</SubType>
     </Compile>
