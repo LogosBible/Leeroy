@@ -63,11 +63,11 @@
     <Reference Include="log4net">
       <HintPath>..\..\packages\log4net.1.2.10\lib\2.0\log4net.dll</HintPath>
     </Reference>
-    <Reference Include="Logos.Git, Version=0.3.0.0, Culture=neutral, processorArchitecture=MSIL">
+    <Reference Include="Logos.Git, Version=0.3.0.0, Culture=neutral, processorArchitecture=MSIL" Condition="'$(Configuration)' == 'Release'">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\packages\Logos.Git.0.3.0\lib\net40\Logos.Git.dll</HintPath>
     </Reference>
-    <Reference Include="Logos.Utility, Version=1.2.0.0, Culture=neutral, processorArchitecture=MSIL">
+    <Reference Include="Logos.Utility, Version=1.2.0.0, Culture=neutral, processorArchitecture=MSIL" Condition="'$(Configuration)' == 'Release'">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\packages\Logos.Utility.1.2.0\lib\net40\Logos.Utility.dll</HintPath>
     </Reference>
@@ -127,6 +127,16 @@
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
+  </ItemGroup>
+  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+    <ProjectReference Include="..\..\..\Logos.Git\src\Logos.Git\Logos.Git.csproj">
+      <Project>{519E9EF0-ACC3-4F22-99B3-11D8354A0AB3}</Project>
+      <Name>Logos.Git</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\Logos.Utility\src\Logos.Utility\Logos.Utility.csproj">
+      <Project>{F0BB7927-B2DB-4E37-9807-8E697CA09F32}</Project>
+      <Name>Logos.Utility</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\nuget.targets" />
