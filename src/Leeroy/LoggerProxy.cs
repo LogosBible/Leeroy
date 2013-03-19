@@ -6,28 +6,32 @@ namespace Leeroy
 	/// <see cref="LoggerProxy"/> is a proxy that forwards log messages sent to a <see cref="Logos.Utility.Logging.Logger"/> instance
 	/// to a <see cref="Common.Logging.ILog"/> logger with the same name.
 	/// </summary>
-	internal sealed class LoggerProxy : Logos.Utility.Logging.LoggerImpl
+	internal sealed class LoggerProxy : Logos.Utility.Logging.LoggerCore
 	{
-		/// <summary>
-		/// Creates a <see cref="LoggerProxy"/> for the specified <see cref="Logos.Utility.Logging.Logger"/>.
-		/// </summary>
-		/// <param name="logger">The logger.</param>
-		public static void Create(Logos.Utility.Logging.Logger logger)
-		{
-			new LoggerProxy(logger).Attach();
-		}
-
-		private LoggerProxy(Logos.Utility.Logging.Logger logger)
-			: base(logger)
+		public LoggerProxy(string name)
 		{
 			// create a new Common.Logging logger
-			m_logger = LogManager.GetLogger(logger.Name);
+			m_logger = LogManager.GetLogger(name);
 		}
 
-		private void Attach()
+		protected override bool IsDebugEnabledCore
 		{
-			// associate this proxy with the underlying Logos.Utility logger
-			ConfigureLogger(m_logger.IsDebugEnabled, m_logger.IsInfoEnabled, m_logger.IsWarnEnabled, m_logger.IsErrorEnabled);
+			get { return m_logger.IsDebugEnabled; }
+		}
+
+		protected override bool IsInfoEnabledCore
+		{
+			get { return m_logger.IsInfoEnabled; }
+		}
+
+		protected override bool IsWarnEnabledCore
+		{
+			get { return m_logger.IsWarnEnabled; }
+		}
+
+		protected override bool IsErrorEnabledCore
+		{
+			get { return m_logger.IsErrorEnabled; }
 		}
 
 		protected override void DebugCore(string message, object[] args)

@@ -15,7 +15,7 @@ namespace Leeroy
 		public Service()
 		{
 			InitializeComponent();
-			Logos.Utility.Logging.LogManager.Initialize(LoggerProxy.Create);
+			Logos.Utility.Logging.LogManager.Initialize(x => new LoggerProxy(x));
 			Log.Info("Initializing service (version {0}).", Assembly.GetExecutingAssembly().GetName().Version);
 
 			ServicePointManager.DefaultConnectionLimit = 10;
