@@ -101,10 +101,17 @@ namespace Leeroy
 
 				if (!buildProject.Disabled)
 				{
-					buildProject.Name = Path.GetFileNameWithoutExtension(item.Path);
-					lock (buildProjectsLock)
-						buildProjects.Add(buildProject);
-					Log.Info("Added build project: {0}", item.Path);
+					if (buildProject.Submodules != null && buildProject.SubmoduleBranches != null)
+					{
+						Log.Error("Cannot specify both 'submodules' and 'submoduleBranches' in {0}.", item.Path);
+					}
+					else
+					{
+						buildProject.Name = Path.GetFileNameWithoutExtension(item.Path);
+						lock (buildProjectsLock)
+							buildProjects.Add(buildProject);
+						Log.Info("Added build project: {0}", item.Path);
+					}
 				}
 				else
 				{

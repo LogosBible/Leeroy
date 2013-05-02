@@ -17,6 +17,8 @@ namespace Leeroy.Json
 
 		public string Branch { get; set; }
 
+		public Dictionary<string, string> Submodules { get; set; }
+
 		public Dictionary<string, string> SubmoduleBranches { get; set; }
 	}
 }

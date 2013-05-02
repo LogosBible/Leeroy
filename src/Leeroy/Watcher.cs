@@ -58,7 +58,15 @@ namespace Leeroy
 						StartBuild();
 					}
 
-					GetSubmodules();
+					try
+					{
+						GetSubmodules();
+					}
+					catch (WatcherException ex)
+					{
+						Log.Error("Getting submodules failed; will stop monitoring project.", ex);
+						break;
+					}
 					updatedSubmodules.Clear();
 				}
 				else
@@ -144,15 +152,24 @@ namespace Leeroy
 
 			m_token.ThrowIfCancellationRequested();
 
-			GitTreeItem gitModulesItem = tree.Items.FirstOrDefault(x => x.Type == "blob" && x.Path == ".gitmodules");
-			if (gitModulesItem == null)
+			// if the new "submodules" property is specified, Leeroy will sync the submodules in the repo with the configuration file;
+			//   otherwise, the contents of the build repo will be used to initialize the submodule list
+			if (m_project.Submodules != null)
+				SyncSubmodules(gitCommit, tree);
+			else
+				LoadSubmodules(tree);
+		}
+
+		private void LoadSubmodules(GitTree buildRepoTree)
+		{
+			string gitModulesBlob = ReadGitModulesBlob(buildRepoTree);
+			if (gitModulesBlob == null)
 			{
-				Log.Error("Tree {0} doesn't contain a .gitmodules file.", gitCommit.Tree.Sha);
+				Log.Error("Tree {0} doesn't contain a .gitmodules file.", buildRepoTree.Sha);
 				return;
 			}
 
-			GitBlob gitModulesBlob = m_gitHubClient.GetBlob(gitModulesItem);
-			using (StringReader reader = new StringReader(gitModulesBlob.GetContent()))
+			using (StringReader reader = new StringReader(gitModulesBlob))
 			{
 				foreach (var submodule in ParseConfigFile(reader).Where(x => x.Key.StartsWith("submodule ", StringComparison.Ordinal)))
 				{
@@ -168,7 +185,7 @@ namespace Leeroy
 					}
 
 					// find submodule in repo, and add it to list of tracked submodules
-					GitTreeItem submoduleItem = tree.Items.FirstOrDefault(x => x.Type == "commit" && x.Mode == "160000" && x.Path == path);
+					GitTreeItem submoduleItem = buildRepoTree.Items.FirstOrDefault(x => x.Type == "commit" && x.Mode == "160000" && x.Path == path);
 					if (submoduleItem == null)
 					{
 						Log.Warn(".gitmodules contains [{0}] but there is no submodule at path '{1}'.", submodule.Key, path);
@@ -184,6 +201,157 @@ namespace Leeroy
 						m_submodules.Add(path, new Submodule { Url = url, User = user, Repo = repo, Branch = branch, LatestCommitId = submoduleItem.Sha });
 					}
 				}
+			}
+		}
+
+		// Loads the desired list of submodules from the configuration file.
+		private void SyncSubmodules(GitCommit buildRepoCommit, GitTree buildRepoTree)
+		{
+			ReadSubmodulesFromConfig();
+
+			// find submodules that should be present in the build repo, but aren't
+			bool updateSubmodules = false;
+			foreach (KeyValuePair<string, Submodule> pair in m_submodules)
+			{
+				string path = pair.Key;
+				Submodule submodule = pair.Value;
+
+				GitTreeItem submoduleItem = buildRepoTree.Items.FirstOrDefault(x => x.Type == "commit" && x.Mode == "160000" && x.Path == path);
+				if (submoduleItem != null)
+				{
+					submodule.LatestCommitId = submoduleItem.Sha;
+				}
+				else
+				{
+					submodule.LatestCommitId = m_gitHubClient.GetLatestCommitId(submodule.User, submodule.Repo, submodule.Branch);
+					if (submodule.LatestCommitId == null)
+						throw new WatcherException("Submodule '{0}' doesn't have a latest commit for branch '{1}'; will stop monitoring project.".FormatInvariant(pair.Key, submodule.Branch));
+					Log.Info("Submodule at path '{0}' is missing; it will be added.", pair.Key);
+					updateSubmodules = true;
+				}
+			}
+
+			// find extra submodules that aren't in the configuration file
+			List<string> extraSubmodulePaths = buildRepoTree.Items
+				.Where(x => x.Type == "commit" && x.Mode == "160000" && !m_submodules.ContainsKey(x.Path))
+				.Select(x => x.Path)
+				.ToList();
+			if (extraSubmodulePaths.Count != 0)
+			{
+				Log.Info("Extra submodule paths: {0}".FormatInvariant(string.Join(", ", extraSubmodulePaths)));
+				updateSubmodules = true;
+			}
+
+			// determine if .gitmodules needs to be updated
+			bool rewriteGitModules = false;
+			string gitModulesBlob = ReadGitModulesBlob(buildRepoTree);
+			using (StringReader reader = new StringReader(gitModulesBlob ?? ""))
+			{
+				var existingGitModules = ParseConfigFile(reader)
+					.Where(x => x.Key.StartsWith("submodule ", StringComparison.Ordinal))
+					.Select(x => new { Path = x.Value["path"], Url = x.Value["url"] })
+					.OrderBy(x => x.Path, StringComparer.Ordinal)
+					.ToList();
+				var desiredGitModules = m_submodules.Select(x => new { Path = x.Key, x.Value.Url }).OrderBy(x => x.Path, StringComparer.Ordinal).ToList();
+
+				if (!existingGitModules.SequenceEqual(desiredGitModules))
+				{
+					Log.Info(".gitmodules needs to be updated.");
+					rewriteGitModules = true;
+				}
+			}
+
+			if (updateSubmodules || rewriteGitModules)
+				UpdateSubmodules(buildRepoCommit, buildRepoTree, rewriteGitModules);
+		}
+
+		private void ReadSubmodulesFromConfig()
+		{
+			// read submodules configuration
+			foreach (KeyValuePair<string, string> pair in m_project.Submodules)
+			{
+				string url = pair.Key;
+				string branch = pair.Value;
+
+				// translate shorthand "User/Repo" into "git@git:User/Repo.git"
+				if (Regex.IsMatch(url, @"^[^/]+/[^/]+$"))
+					url = @"git@git:" + url + ".git";
+
+				string server, user, repo;
+				SplitRepoUrl(url, out server, out user, out repo);
+
+				Submodule submodule = new Submodule { Url = url, User = user, Repo = repo, Branch = branch };
+
+				string path = Path.GetFileNameWithoutExtension(url);
+				if (path == null)
+					throw new WatcherException("Couldn't determine path for submodule. Url={0}, Branch={1}".FormatInvariant(url, branch));
+
+				Log.Info("Adding new submodule: '{0}' = '{1}'.", path, url);
+				m_submodules.Add(path, submodule);
+			}
+		}
+
+		private string ReadGitModulesBlob(GitTree tree)
+		{
+			GitTreeItem gitModulesItem = tree.Items.FirstOrDefault(x => x.Type == "blob" && x.Path == ".gitmodules");
+			if (gitModulesItem == null)
+				return null;
+
+			GitBlob gitModulesBlob = m_gitHubClient.GetBlob(gitModulesItem);
+			return gitModulesBlob.GetContent();
+		}
+
+		private void UpdateSubmodules(GitCommit buildRepoCommit, GitTree buildRepoTree, bool rewriteGitModules)
+		{
+			// copy most items from the existing commit tree
+			const string gitModulesPath = ".gitmodules";
+			List<GitTreeItem> treeItems = buildRepoTree.Items
+				.Where(x => (x.Type != "commit" && x.Type != "blob") || (x.Type == "blob" && (!rewriteGitModules || x.Path != gitModulesPath))).ToList();
+
+			// add all the submodules
+			treeItems.AddRange(m_submodules.Select(x => new GitTreeItem
+			{
+				Mode = "160000",
+				Path = x.Key,
+				Sha = x.Value.LatestCommitId,
+				Type = "commit",
+			}));
+
+			if (rewriteGitModules)
+			{
+				// create the contents of the .gitmodules file
+				string gitModules;
+				using (StringWriter sw = new StringWriter { NewLine = "\n" })
+				{
+					foreach (var pair in m_submodules.OrderBy(x => x.Key, StringComparer.Ordinal))
+					{
+						sw.WriteLine("[submodule \"{0}\"]", pair.Key);
+						sw.WriteLine("\tpath = {0}", pair.Key);
+						sw.WriteLine("\turl = {0}", pair.Value.Url);
+					}
+					gitModules = sw.ToString();
+				}
+
+				// create the blob
+				GitBlob gitModulesBlob = CreateBlob(gitModules);
+				treeItems.Add(new GitTreeItem
+				{
+					Mode = "100644",
+					Path = gitModulesPath,
+					Sha = gitModulesBlob.Sha,
+					Type = "blob",
+				});
+			}
+
+			const string commitMessage = "Update submodules to match Leeroy configuration.";
+			GitCommit newCommit = CreateNewCommit(buildRepoCommit, null, treeItems, commitMessage);
+			Log.Info("Created new commit for synced submodules: {0}; moving branch.", newCommit.Sha);
+
+			// advance the branch pointer to the new commit
+			if (TryAdvanceBranch(newCommit.Sha))
+			{
+				Log.Info("Build repo updated successfully to commit {0}.", newCommit.Sha);
+				m_lastBuildCommitId = newCommit.Sha;
 			}
 		}
 
@@ -205,7 +373,7 @@ namespace Leeroy
 				}));
 
 			// update build number
-			string buildNumberPath = "SolutionBuildNumber.txt";
+			const string buildNumberPath = "SolutionBuildNumber.txt";
 			int buildVersion = 0;
 			GitTreeItem buildVersionItem = oldTree.Items.FirstOrDefault(x => x.Type == "blob" && x.Path == buildNumberPath);
 			if (buildVersionItem != null)
@@ -216,11 +384,7 @@ namespace Leeroy
 				Log.Debug("Updating build number to {0}.", buildVersion);
 
 				string buildVersionString = "{0}\r\n".FormatInvariant(buildVersion);
-				string base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(buildVersionString));
-				GitBlob newBuildVersionBlob = new GitBlob { Content = base64, Encoding = "base64" };
-				newBuildVersionBlob = m_gitHubClient.CreateBlob(m_user, m_repo, newBuildVersionBlob);
-				if (newBuildVersionBlob == null)
-					throw new WatcherException("Couldn't create {0} blob.".FormatInvariant(buildNumberPath));
+				GitBlob newBuildVersionBlob = CreateBlob(buildVersionString);
 
 				treeItems.Add(new GitTreeItem
 				{
@@ -276,32 +440,11 @@ namespace Leeroy
 				}
 			}
 
-			// create new tree
-			GitCreateTree newTree = new GitCreateTree
-			{
-				BaseTree = commit.Tree.Sha,
-				Tree = treeItems.ToArray()
-			};
-			GitTree tree = m_gitHubClient.CreateTree(m_user, m_repo, newTree);
-			if (tree == null)
-				throw new WatcherException("Couldn't create new tree.");
-			Log.Debug("Created new tree: {0}.", tree.Sha);
-
-			// create a commit
-			GitCreateCommit createCommit = new GitCreateCommit
-			{
-				Message = commitMessage.ToString(),
-				Parents = new[] { m_lastBuildCommitId },
-				Tree = tree.Sha,
-			};
-			GitCommit newCommit = m_gitHubClient.CreateCommit(m_user, m_repo, createCommit);
-			if (newCommit == null)
-				throw new WatcherException("Couldn't create new commit.");
+			GitCommit newCommit = CreateNewCommit(commit, oldTree.Sha, treeItems, commitMessage.ToString());
 			Log.Info("Created new commit for build {0}: {1}; moving branch.", buildVersion, newCommit.Sha);
 
 			// advance the branch pointer to the new commit
-			GitReference reference = m_gitHubClient.UpdateReference(m_user, m_repo, m_branch, new GitUpdateReference { Sha = newCommit.Sha });
-			if (reference != null && reference.Object.Sha == newCommit.Sha)
+			if (TryAdvanceBranch(newCommit.Sha))
 			{
 				Log.Info("Build repo updated successfully to commit {0}.", newCommit.Sha);
 				m_lastBuildCommitId = newCommit.Sha;
@@ -313,6 +456,50 @@ namespace Leeroy
 				m_token.WaitHandle.WaitOne(TimeSpan.FromSeconds(15));
 			}
 		}
+
+		private GitBlob CreateBlob(string content)
+		{
+			string base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(content));
+			GitBlob newBlob = new GitBlob { Content = base64, Encoding = "base64" };
+			newBlob = m_gitHubClient.CreateBlob(m_user, m_repo, newBlob);
+			if (newBlob == null)
+				throw new WatcherException("Couldn't create blob with content '{0}'.".FormatInvariant(content.Substring(Math.Min(100, content.Length))));
+			return newBlob;
+		}
+
+		private GitCommit CreateNewCommit(GitCommit parentCommit, string baseTreeSha, List<GitTreeItem> treeItems, string commitMessage)
+		{
+			// create new tree
+			GitCreateTree newTree = new GitCreateTree
+			{
+				BaseTree = baseTreeSha,
+				Tree = treeItems.ToArray()
+			};
+			GitTree tree = m_gitHubClient.CreateTree(m_user, m_repo, newTree);
+			if (tree == null)
+				throw new WatcherException("Couldn't create new tree.");
+			Log.Debug("Created new tree: {0}.", tree.Sha);
+
+			// create a commit
+			GitCreateCommit createCommit = new GitCreateCommit
+			{
+				Message = commitMessage,
+				Parents = new[] { parentCommit.Sha },
+				Tree = tree.Sha,
+			};
+			GitCommit newCommit = m_gitHubClient.CreateCommit(m_user, m_repo, createCommit);
+			if (newCommit == null)
+				throw new WatcherException("Couldn't create new commit.");
+			return newCommit;
+		}
+
+		private bool TryAdvanceBranch(string newSha)
+		{
+			// advance the branch pointer to the new commit
+			GitReference reference = m_gitHubClient.UpdateReference(m_user, m_repo, m_branch, new GitUpdateReference { Sha = newSha });
+			return reference != null && reference.Object.Sha == newSha;
+		}
+
 
 		// Parses a git configuration file into blocks.
 		private IEnumerable<KeyValuePair<string, Dictionary<string, string>>> ParseConfigFile(TextReader reader)
