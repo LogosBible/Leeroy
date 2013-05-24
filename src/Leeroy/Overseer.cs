@@ -82,8 +82,10 @@ namespace Leeroy
 			foreach (GitTreeItem item in tree.Items)
 				Log.Debug(item.Path);
 
-			List<BuildProject> buildProjects = new List<BuildProject>();
 			object buildProjectsLock = new object();
+			List<BuildProject> buildProjects = new List<BuildProject>();
+			Dictionary<string, string> buildRepoBranches = new Dictionary<string, string>();
+
 			Parallel.ForEach(tree.Items.Where(x => x.Type == "blob" && x.Path.EndsWith(".json", StringComparison.OrdinalIgnoreCase)), item =>
 			{
 				GitBlob blob = m_gitHubClient.GetBlob(item);
@@ -99,24 +101,37 @@ namespace Leeroy
 					return;
 				}
 
-				if (!buildProject.Disabled)
+				buildProject.Name = Path.GetFileNameWithoutExtension(item.Path);
+
+				if (buildProject.Disabled)
 				{
-					if (buildProject.Submodules != null && buildProject.SubmoduleBranches != null)
-					{
-						Log.Error("Cannot specify both 'submodules' and 'submoduleBranches' in {0}.", item.Path);
-					}
-					else
-					{
-						buildProject.Name = Path.GetFileNameWithoutExtension(item.Path);
-						lock (buildProjectsLock)
-							buildProjects.Add(buildProject);
-						Log.Info("Added build project: {0}", item.Path);
-					}
+					Log.Info("Ignoring disabled build project: {0}", buildProject.Name);
+					return;
 				}
-				else
+
+				if (buildProject.Submodules != null && buildProject.SubmoduleBranches != null)
 				{
-					Log.Info("Ignoring disabled build project: {0}", item.Path);
+					Log.Error("Cannot specify both 'submodules' and 'submoduleBranches' in {0}.", buildProject.Name);
+					return;
 				}
+
+				string existingProjectName;
+				lock (buildProjectsLock)
+				{
+					string buildRepoBranch = buildProject.RepoUrl + "/" + buildProject.Branch;
+					if (!buildRepoBranches.TryGetValue(buildRepoBranch, out existingProjectName))
+						buildRepoBranches.Add(buildRepoBranch, buildProject.Name);
+				}
+
+				if (existingProjectName != null)
+				{
+					Log.Error("Project '{0}' is using the same build repo branch ({1}, {2}) as '{3}'; ignoring this project.", buildProject.Name, buildProject.RepoUrl, buildProject.Branch, existingProjectName);
+					return;
+				}
+
+				lock (buildProjectsLock)
+					buildProjects.Add(buildProject);
+				Log.Info("Added build project: {0}", buildProject.Name);
 			});
 
 			return buildProjects;
