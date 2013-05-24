@@ -126,6 +126,12 @@ namespace Leeroy
 				if (existingProjectName != null)
 				{
 					Log.Error("Project '{0}' is using the same build repo branch ({1}, {2}) as '{3}'; ignoring this project.", buildProject.Name, buildProject.RepoUrl, buildProject.Branch, existingProjectName);
+
+					// disable the existing project, too; we don't know which one is correct and don't want spurious build commits to be pushed
+					lock (buildProjectsLock)
+						if (buildProjects.RemoveAll(x => x.Name == existingProjectName) != 0)
+							Log.Error("Project '{0}' is using the same build repo branch ({1}, {2}) as '{3}'; ignoring this project.", existingProjectName, buildProject.RepoUrl, buildProject.Branch, buildProject.Name);
+
 					return;
 				}
 
