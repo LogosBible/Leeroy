@@ -46,8 +46,20 @@ namespace Leeroy
 				string commitId = m_gitHubClient.GetLatestCommitId(m_user, m_repo, m_branch);
 				if (commitId == null)
 				{
-					Log.Error("Getting last commit ID failed; will stop monitoring project.");
-					break;
+					Log.Info("Getting last commit ID failed; assuming branch doesn't exist.");
+					commitId = m_gitHubClient.GetLatestCommitId(m_user, m_repo, "master");
+					if (commitId == null)
+					{
+						Log.Error("Getting commit ID for 'master' failed; will stop monitoring project.");
+						break;
+					}
+
+					GitReference reference = m_gitHubClient.CreateReference(m_user, m_repo, m_branch, commitId);
+					if (reference == null)
+					{
+						Log.Error("Failed to create new branch '{0}' (based on master = {1}); will stop monitoring project.", m_branch, commitId);
+						break;
+					}
 				}
 
 				if (commitId != m_lastBuildCommitId)
@@ -499,7 +511,6 @@ namespace Leeroy
 			GitReference reference = m_gitHubClient.UpdateReference(m_user, m_repo, m_branch, new GitUpdateReference { Sha = newSha });
 			return reference != null && reference.Object.Sha == newSha;
 		}
-
 
 		// Parses a git configuration file into blocks.
 		private IEnumerable<KeyValuePair<string, Dictionary<string, string>>> ParseConfigFile(TextReader reader)
