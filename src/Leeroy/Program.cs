@@ -45,6 +45,10 @@ namespace Leeroy
 				{
 					action(x);
 				}
+				catch (OperationCanceledException)
+				{
+					// work was canceled; ignore
+				}
 				catch (Exception ex)
 				{
 					Log.Error("Unhandled exception in background work: {0}", ex.Message);

@@ -50,6 +50,8 @@ namespace Leeroy
 				// TODO: verify this contains a single OperationCanceledException
 			}
 
+			Log.Info("Service stopped.");
+
 			// shut down
 			m_task.Dispose();
 			m_tokenSource.Dispose();
