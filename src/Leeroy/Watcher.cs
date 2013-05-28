@@ -509,7 +509,16 @@ namespace Leeroy
 		{
 			// advance the branch pointer to the new commit
 			GitReference reference = m_gitHubClient.UpdateReference(m_user, m_repo, m_branch, new GitUpdateReference { Sha = newSha });
-			return reference != null && reference.Object.Sha == newSha;
+			if (reference != null && reference.Object.Sha == newSha)
+			{
+				Log.Info("Branch '{0}' now references '{1}'.", m_branch, newSha);
+				return true;
+			}
+			else
+			{
+				Log.Warn("Branch '{0}' could not be updated to reference '{1}'.", m_branch, newSha);
+				return false;
+			}
 		}
 
 		// Parses a git configuration file into blocks.
