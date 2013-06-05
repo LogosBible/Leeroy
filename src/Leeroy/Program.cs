@@ -51,7 +51,7 @@ namespace Leeroy
 				}
 				catch (Exception ex)
 				{
-					Log.Error("Unhandled exception in background work: {0}", ex.Message);
+					Log.Error("Unhandled exception in background work: {0}", ex);
 					Environment.FailFast("Unhandled exception in background work.", ex);
 				}
 			};
