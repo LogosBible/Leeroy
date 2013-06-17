@@ -60,6 +60,9 @@ namespace Leeroy
 						Log.Error("Failed to create new branch '{0}' (based on master = {1}); will stop monitoring project.", m_branch, commitId);
 						break;
 					}
+
+					Log.Info("Sleeping for five seconds to allow GitHub API time to learn about the new branch.");
+					Thread.Sleep(TimeSpan.FromSeconds(5));
 				}
 
 				if (commitId != m_lastBuildCommitId)
