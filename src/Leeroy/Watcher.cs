@@ -154,6 +154,13 @@ namespace Leeroy
 
 			m_token.ThrowIfCancellationRequested();
 
+			if (string.IsNullOrEmpty(m_lastBuildCommitId))
+			{
+				string message = "No latest commit for {0}/{1}/{2}.".FormatInvariant(m_user, m_repo, m_branch);
+				Log.Error(message);
+				throw new WatcherException(message);
+			}
+
 			Log.Info("Latest commit is {0}; getting details.", m_lastBuildCommitId);
 			GitCommit gitCommit = m_gitHubClient.GetGitCommit(m_user, m_repo, m_lastBuildCommitId);
 
