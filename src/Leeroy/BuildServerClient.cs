@@ -117,7 +117,7 @@ namespace Leeroy
 				using (HttpWebResponse response = request.GetHttpResponse())
 				{
 					statusCode = response.StatusCode;
-					if (statusCode == HttpStatusCode.OK)
+					if (statusCode == HttpStatusCode.OK || statusCode == HttpStatusCode.Created)
 					{
 						failed = false;
 					}
