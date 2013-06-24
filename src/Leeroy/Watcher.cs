@@ -442,7 +442,7 @@ namespace Leeroy
 						commitMessage.AppendLine("  {0}/{1}".FormatInvariant(submodulePath, comparisonCommit.Sha));
 
 						Commit fullCommit = m_gitHubClient.GetCommit(submodule.User, submodule.Repo, comparisonCommit.Sha);
-						if (fullCommit != null)
+						if (fullCommit != null && fullCommit.Files != null)
 						{
 							foreach (CommitFile file in fullCommit.Files)
 								commitMessage.AppendLine("  {0}".FormatInvariant(file.Filename));
