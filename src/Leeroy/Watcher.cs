@@ -27,6 +27,7 @@ namespace Leeroy
 			m_branch = m_project.Branch ?? "master";
 			m_token = token;
 			m_submodules = new Dictionary<string, Submodule>();
+			m_retryDelay = TimeSpan.FromSeconds(15);
 			Log = LogManager.GetLogger("Watcher/{0}".FormatInvariant(m_project.Name));
 			Log.Info("Watching '{0}' branch in {1}/{2}.", m_branch, m_user, m_repo);
 		}
@@ -43,7 +44,7 @@ namespace Leeroy
 			while (!m_token.IsCancellationRequested)
 			{
 				// check for changes to the build repo itself (and reload the submodules if so)
-				string commitId = m_gitHubClient.GetLatestCommitId(m_user, m_repo, m_branch);
+				string commitId = m_gitHubClient.GetLatestCommitId(m_user, m_repo, m_branch, m_updatingSubmodulesFailed);
 				if (commitId == null)
 				{
 					Log.Info("Getting last commit ID failed; assuming branch doesn't exist.");
@@ -92,7 +93,7 @@ namespace Leeroy
 					foreach (var pair in m_submodules)
 					{
 						Submodule submodule = pair.Value;
-						commitId = m_gitHubClient.GetLatestCommitId(submodule.User, submodule.Repo, submodule.Branch);
+						commitId = m_gitHubClient.GetLatestCommitId(submodule.User, submodule.Repo, submodule.Branch, m_updatingSubmodulesFailed);
 						if (commitId == null)
 						{
 							Log.Error("Submodule '{0}' doesn't have a latest commit for branch '{1}'; will stop monitoring project.", pair.Key, submodule.Branch);
@@ -122,8 +123,24 @@ namespace Leeroy
 					{
 						try
 						{
-							UpdateSubmodules(updatedSubmodules);
+							if (UpdateSubmodules(updatedSubmodules))
+							{
+								m_updatingSubmodulesFailed = false;
+								m_retryDelay = TimeSpan.FromSeconds(15);
+							}
+							else
+							{
+								m_updatingSubmodulesFailed = true;
+								m_retryDelay = m_retryDelay + m_retryDelay;
+								TimeSpan maximumRetryDelay = TimeSpan.FromMinutes(30);
+								if (m_retryDelay > maximumRetryDelay)
+									m_retryDelay = maximumRetryDelay;
+								Log.Info("Failed to update submodules; will wait {0} before trying again.", m_retryDelay);
+							}
 							updatedSubmodules.Clear();
+
+							// wait for the build to start, and/or for gitdata to be updated with the new commit data
+							m_token.WaitHandle.WaitOne(m_retryDelay);
 						}
 						catch (WatcherException ex)
 						{
@@ -377,7 +394,7 @@ namespace Leeroy
 			}
 		}
 
-		private void UpdateSubmodules(IDictionary<string, string> updatedSubmodules)
+		private bool UpdateSubmodules(IDictionary<string, string> updatedSubmodules)
 		{
 			Log.Info("Updating the following submodules: {0}.", string.Join(", ", updatedSubmodules.Keys));
 
@@ -474,8 +491,11 @@ namespace Leeroy
 					m_submodules[pair.Key].LatestCommitId = pair.Value;
 				StartBuild();
 
-				// wait for the build to start, and for gitdata to be updated with the new commit data
-				m_token.WaitHandle.WaitOne(TimeSpan.FromSeconds(15));
+				return true;
+			}
+			else
+			{
+				return false;
 			}
 		}
 
@@ -592,5 +612,7 @@ namespace Leeroy
 		readonly Logger Log;
 
 		string m_lastBuildCommitId;
+		TimeSpan m_retryDelay;
+		bool m_updatingSubmodulesFailed;
 	}
 }
