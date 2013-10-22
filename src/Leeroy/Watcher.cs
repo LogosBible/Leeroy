@@ -119,13 +119,13 @@ namespace Leeroy
 						continue;
 
 					// if there were updated submodules, create a new commit
+					m_updatingSubmodulesFailed = false;
 					if (updatedSubmodules.Count != 0)
 					{
 						try
 						{
 							if (UpdateSubmodules(updatedSubmodules))
 							{
-								m_updatingSubmodulesFailed = false;
 								m_retryDelay = TimeSpan.FromSeconds(15);
 							}
 							else
