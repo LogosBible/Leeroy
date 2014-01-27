@@ -171,9 +171,6 @@ namespace Leeroy
 
 			Log.Info("Getting latest commit.", m_user, m_repo, m_branch);
 			m_lastBuildCommitId = m_gitHubClient.GetLatestCommitId(m_user, m_repo, m_branch);
-
-			m_token.ThrowIfCancellationRequested();
-
 			if (string.IsNullOrEmpty(m_lastBuildCommitId))
 			{
 				string message = "No latest commit for {0}/{1}/{2}.".FormatInvariant(m_user, m_repo, m_branch);
@@ -181,13 +178,27 @@ namespace Leeroy
 				throw new WatcherException(message);
 			}
 
+			m_token.ThrowIfCancellationRequested();
+
 			Log.Info("Latest commit is {0}; getting details.", m_lastBuildCommitId);
 			GitCommit gitCommit = m_gitHubClient.GetGitCommit(m_user, m_repo, m_lastBuildCommitId);
+			if (gitCommit == null)
+			{
+				string message = "Getting commit {0} for {1}/{2}/{3} failed.".FormatInvariant(m_lastBuildCommitId, m_user, m_repo, m_branch);
+				Log.Error(message);
+				throw new WatcherException(message);
+			}
 
 			m_token.ThrowIfCancellationRequested();
 
 			Log.Debug("Fetching commit tree ({0}).", gitCommit.Tree.Sha);
 			GitTree tree = m_gitHubClient.GetTree(gitCommit);
+			if (tree == null)
+			{
+				string message = "Getting tree {0} for {1}/{2}/{3} failed.".FormatInvariant(gitCommit.Tree.Sha, m_user, m_repo, m_branch);
+				Log.Error(message);
+				throw new WatcherException(message);
+			}
 
 			m_token.ThrowIfCancellationRequested();
 
