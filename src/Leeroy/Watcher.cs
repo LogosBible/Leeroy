@@ -458,6 +458,13 @@ namespace Leeroy
 				CommitComparison comparison = m_gitHubClient.CompareCommits(submodule.User, submodule.Repo, submodule.LatestCommitId, pair.Value);
 				if (comparison != null)
 				{
+					string authors = string.Join(", ", comparison.Commits.Select(x => x.GitCommit.Author.Name + " <" + x.GitCommit.Author.Email + ">").Distinct().OrderBy(x => x, StringComparer.InvariantCultureIgnoreCase));
+					if (authors.Length > 0)
+					{
+						commitMessage.AppendLine();
+						commitMessage.AppendLine("Authors: {0}".FormatInvariant(authors));
+					}
+
 					foreach (Commit comparisonCommit in comparison.Commits.Reverse().Take(5))
 					{
 						// read the first line of the commit message
