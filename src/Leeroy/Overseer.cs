@@ -5,8 +5,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Leeroy.Json;
-using Logos.Git;
 using Logos.Utility.Logging;
+using Newtonsoft.Json;
 using Octokit;
 
 namespace Leeroy
@@ -97,9 +97,9 @@ namespace Leeroy
 					BuildProject buildProject;
 					try
 					{
-						buildProject = JsonUtility.FromJson<BuildProject>(blob.GetContent());
+						buildProject = JsonConvert.DeserializeObject<BuildProject>(blob.GetContent());
 					}
-					catch (FormatException ex)
+					catch (JsonSerializationException ex)
 					{
 						Log.Error("Couldn't parse '{0}': {1}", ex, item.Path, ex.Message);
 						return;
