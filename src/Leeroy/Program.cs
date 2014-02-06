@@ -17,6 +17,9 @@ namespace Leeroy
 		/// </summary>
 		static void Main(string[] args)
 		{
+			AppDomain.CurrentDomain.UnhandledException += (s, e) => Log.Error("Unhandled exception in background work: {0}", e.ExceptionObject);
+			TaskScheduler.UnobservedTaskException += (s, e) => Log.Error("Unobserved exception in background work: {0}", e.Exception);
+
 			if (args.FirstOrDefault() == "/test")
 			{
 				Service service = new Service();

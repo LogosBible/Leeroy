@@ -45,9 +45,9 @@ namespace Leeroy
 			{
 				m_task.Wait();
 			}
-			catch (AggregateException)
+			catch (AggregateException ex)
 			{
-				// TODO: verify this contains a single OperationCanceledException
+				ex.Handle(e => e is OperationCanceledException);
 			}
 
 			Log.Info("Service stopped.");

@@ -49,7 +49,7 @@ namespace Leeroy
 					{
 						await Task.WhenAll(m_watchers);
 					}
-					catch (AggregateException)
+					catch (OperationCanceledException)
 					{
 					}
 					m_currentConfigurationTokenSource.Dispose();
@@ -93,6 +93,7 @@ namespace Leeroy
 				.Select(async item =>
 				{
 					var blob = await m_gitHubClient.GetBlob(m_user, m_repo, item.Sha);
+					m_token.ThrowIfCancellationRequested();
 
 					BuildProject buildProject;
 					try
