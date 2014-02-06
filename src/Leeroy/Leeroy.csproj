@@ -87,6 +87,7 @@
   <ItemGroup>
     <Compile Include="BuildServerClient.cs" />
     <Compile Include="GitHubClientWrapper.cs" />
+    <Compile Include="GitHubHttpClient.cs" />
     <Compile Include="LoggerProxy.cs" />
     <Compile Include="Installer.cs">
       <SubType>Component</SubType>
