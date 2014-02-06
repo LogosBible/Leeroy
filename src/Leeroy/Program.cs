@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Linq;
 using System.Net;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.ServiceProcess;
+using System.Threading.Tasks;
+using Logos.Utility;
 using Logos.Utility.Logging;
 
 namespace Leeroy
@@ -33,8 +36,14 @@ namespace Leeroy
 		{
 			HttpWebRequest request = (HttpWebRequest) WebRequest.Create(uri);
 			request.AutomaticDecompression = DecompressionMethods.Deflate | DecompressionMethods.GZip;
-			request.UserAgent = "Leeroy/1.0";
+			request.UserAgent = "Leeroy/" + GetUserAgentVersion();
 			return request;
+		}
+
+		public static string GetUserAgentVersion()
+		{
+			var version = Assembly.GetExecutingAssembly().GetName().Version;
+			return "{0}.{1}".FormatInvariant(version.Major, version.Minor);
 		}
 
 		public static Action<T> FailOnException<T>(this Action<T> action)
@@ -55,6 +64,20 @@ namespace Leeroy
 					Environment.FailFast("Unhandled exception in background work.", ex);
 				}
 			};
+		}
+
+		public static Task FailOnException(Task task)
+		{
+			task.ContinueWith(x =>
+			{
+				var exception = x.Exception;
+				if (exception != null && !(exception.InnerException is OperationCanceledException))
+				{
+					Log.Error("Unhandled exception in background work: {0}", exception);
+					Environment.FailFast("Unhandled exception in background work.", exception);
+				}
+			}, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
+			return task;
 		}
 
 		static readonly Logger Log = LogManager.GetLogger("Program");

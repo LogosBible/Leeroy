@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Reflection;
 using System.ServiceProcess;
 using System.Threading;
 using System.Threading.Tasks;
 using Leeroy.Properties;
-using Logos.Git.GitHub;
 using Logos.Utility.Logging;
+using Octokit;
+using Octokit.Internal;
 
 namespace Leeroy
 {
@@ -19,10 +21,8 @@ namespace Leeroy
 			Log.Info("Initializing service (version {0}).", Assembly.GetExecutingAssembly().GetName().Version);
 
 			ServicePointManager.DefaultConnectionLimit = 10;
-			m_gitHubClient = new GitHubClient(new Uri("http://git/api/v3/"), Settings.Default.UserName, Settings.Default.Password)
-			{
-				UseGitDataApi = true
-			};
+			var gitHubClient = new GitHubClient(new ProductHeaderValue("Leeroy", Program.GetUserAgentVersion()), new InMemoryCredentialStore(new Credentials(Settings.Default.UserName, Settings.Default.Password)), new Uri("http://git/api/v3/"));
+			m_gitHubClient = new GitHubClientWrapper(gitHubClient);
 		}
 
 		internal void Start()
@@ -32,7 +32,7 @@ namespace Leeroy
 			m_tokenSource = new CancellationTokenSource();
 			BuildServerClient buildServerClient = new BuildServerClient(m_tokenSource.Token);
 			Overseer overseer = new Overseer(m_tokenSource.Token, buildServerClient, m_gitHubClient, "Build", "Configuration", "master");
-			m_task = Task.Factory.StartNew(Program.FailOnException<object>(overseer.Run), m_tokenSource, TaskCreationOptions.LongRunning);
+			m_task = Program.FailOnException(overseer.Run());
 		}
 
 		internal new void Stop()
@@ -67,7 +67,7 @@ namespace Leeroy
 			Stop();
 		}
 
-		readonly GitHubClient m_gitHubClient;
+		readonly GitHubClientWrapper m_gitHubClient;
 		CancellationTokenSource m_tokenSource;
 		Task m_task;
 
