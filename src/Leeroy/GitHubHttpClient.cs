@@ -34,10 +34,8 @@ namespace Leeroy
 			};
 
 			using (var requestMessage = m_httpClientAdapter.BuildRequestMessage(request))
-			{
-				var responseMessage = await http.SendAsync(requestMessage, HttpCompletionOption.ResponseContentRead, m_token).ConfigureAwait(false);
+			using (var responseMessage = await http.SendAsync(requestMessage, HttpCompletionOption.ResponseContentRead, m_token).ConfigureAwait(false))
 				return await m_httpClientAdapter.BuildResponse<T>(responseMessage).ConfigureAwait(false);
-			}
 		}
 
 		// We can't derive from HttpClientAdapter because we need to override Send (which is non-virtual), but we can access
