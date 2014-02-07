@@ -28,6 +28,7 @@ namespace Leeroy
 			Log.Info("Starting service.");
 
 			m_tokenSource = new CancellationTokenSource();
+			m_buildServerClient = new BuildServerClient(m_tokenSource.Token);
 
 			var connection = new Connection(
 				new ProductHeaderValue("Leeroy", Program.GetUserAgentVersion()),
@@ -38,9 +39,21 @@ namespace Leeroy
 			var gitHubClient = new GitHubClient(connection);
 			m_gitHubClient = new GitHubClientWrapper(gitHubClient);
 
-			BuildServerClient buildServerClient = new BuildServerClient(m_tokenSource.Token);
-			Overseer overseer = new Overseer(m_tokenSource.Token, buildServerClient, m_gitHubClient, "Build", "Configuration", "master");
+			StartOverseer();
+		}
+
+		private void StartOverseer()
+		{
+			Overseer overseer = new Overseer(m_tokenSource.Token, m_buildServerClient, m_gitHubClient, "Build", "Configuration", "master");
 			m_task = Program.FailOnException(overseer.Run());
+			m_task.ContinueWith(t =>
+			{
+				if (!m_tokenSource.IsCancellationRequested)
+				{
+					Log.Error("Main task was canceled unexpectedly.");
+					StartOverseer();
+				}
+			}, TaskContinuationOptions.OnlyOnCanceled);
 		}
 
 		internal new void Stop()
@@ -77,6 +90,7 @@ namespace Leeroy
 		}
 
 		GitHubClientWrapper m_gitHubClient;
+		BuildServerClient m_buildServerClient;
 		CancellationTokenSource m_tokenSource;
 		Task m_task;
 
