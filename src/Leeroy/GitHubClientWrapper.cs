@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Net;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using Logos.Utility;
@@ -45,10 +47,16 @@ namespace Leeroy
 			return m_client.GitDatabase.Blob.Get(owner, name, reference);
 		}
 
-		public async Task<string> GetCommitId(string owner, string name, string branch, bool ignored = false)
+		public async Task<string> GetCommitId(string owner, string name, string branch, bool refreshCache = false)
 		{
-			var reference = await m_client.GitDatabase.Reference.Get(owner, name, "heads/" + branch).ConfigureAwait(false);
-			return reference.Object.Sha;
+			using (var message = await new HttpClient().GetAsync("http://gitdata/commits/latest/git/{0}/{1}/{2}".FormatInvariant(owner, name, branch) + (refreshCache ? "?refreshCache=true" : "")))
+			using (message.Content)
+			{
+				if (message.StatusCode == HttpStatusCode.OK)
+					return (await message.Content.ReadAsStringAsync()).Trim();
+			}
+
+			return null;
 		}
 
 		public Task<Commit> GetCommit(string owner, string name, string reference)
