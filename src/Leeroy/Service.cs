@@ -6,6 +6,7 @@ using System.ServiceProcess;
 using System.Threading;
 using System.Threading.Tasks;
 using Leeroy.Properties;
+using Logos.Utility;
 using Logos.Utility.Logging;
 using Octokit;
 using Octokit.Internal;
@@ -74,9 +75,9 @@ namespace Leeroy
 			Log.Info("Service stopped.");
 
 			// shut down
-			m_task.Dispose();
-			m_tokenSource.Dispose();
-			m_gitHubClient = null;
+			DisposableUtility.Dispose(ref m_task);
+			DisposableUtility.Dispose(ref m_tokenSource);
+			DisposableUtility.Dispose(ref m_gitHubClient);
 		}
 
 		protected override void OnStart(string[] args)

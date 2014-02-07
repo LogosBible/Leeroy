@@ -8,10 +8,11 @@ using Octokit;
 
 namespace Leeroy
 {
-	public sealed class GitHubClientWrapper
+	public sealed class GitHubClientWrapper : IDisposable
 	{
 		public GitHubClientWrapper(GitHubClient client)
 		{
+			m_httpClient = new HttpClient();
 			m_client = client;
 		}
 
@@ -49,7 +50,7 @@ namespace Leeroy
 
 		public async Task<string> GetCommitId(string owner, string name, string branch, bool refreshCache = false)
 		{
-			using (var message = await new HttpClient().GetAsync("http://gitdata/commits/latest/git/{0}/{1}/{2}".FormatInvariant(owner, name, branch) + (refreshCache ? "?refreshCache=true" : "")))
+			using (var message = await m_httpClient.GetAsync("http://gitdata/commits/latest/git/{0}/{1}/{2}".FormatInvariant(owner, name, branch) + (refreshCache ? "?refreshCache=true" : "")))
 			using (message.Content)
 			{
 				if (message.StatusCode == HttpStatusCode.OK)
@@ -81,6 +82,12 @@ namespace Leeroy
 			return m_client.GitDatabase.Reference.Update(owner, name, "refs/heads/" + branch, referenceUpdate);
 		}
 
+		public void Dispose()
+		{
+			m_httpClient.Dispose();
+		}
+
+		readonly HttpClient m_httpClient;
 		readonly GitHubClient m_client;
 	}
 
