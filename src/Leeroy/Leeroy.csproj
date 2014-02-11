@@ -88,6 +88,7 @@
     <Compile Include="BuildServerClient.cs" />
     <Compile Include="GitHubClientWrapper.cs" />
     <Compile Include="GitHubHttpClient.cs" />
+    <Compile Include="IGitHubClientWrapper.cs" />
     <Compile Include="LoggerProxy.cs" />
     <Compile Include="Installer.cs">
       <SubType>Component</SubType>

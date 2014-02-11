@@ -8,9 +8,9 @@ using Octokit;
 
 namespace Leeroy
 {
-	public sealed class GitHubClientWrapper : IDisposable
+	public sealed class GitHubClientWrapper : IGitHubClientWrapper, IDisposable
 	{
-		public GitHubClientWrapper(GitHubClient client)
+		public GitHubClientWrapper(IGitHubClient client)
 		{
 			m_httpClient = new HttpClient();
 			m_client = client;
@@ -88,7 +88,7 @@ namespace Leeroy
 		}
 
 		readonly HttpClient m_httpClient;
-		readonly GitHubClient m_client;
+		readonly IGitHubClient m_client;
 	}
 
 	public sealed class CommitComparison
