@@ -104,10 +104,12 @@ namespace Leeroy
 
 		private void StartBuild(Uri uri)
 		{
-			// GET the build URL, which will start a build
+			// POST to the build URL, which will start a build
 			Log.Info("Starting a build via: {0}", uri.AbsoluteUri);
 			HttpWebRequest request = Program.CreateWebRequest(uri);
+			request.Method = "POST";
 			request.Timeout = (int) TimeSpan.FromSeconds(5).TotalMilliseconds;
+
 			bool failed = true;
 			HttpStatusCode? statusCode = null;
 			WebException exception = null;
