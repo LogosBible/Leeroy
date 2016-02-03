@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Leeroy.Properties;
 using Logos.Utility.Logging;
 using Logos.Utility.Net;
 
@@ -109,6 +110,7 @@ namespace Leeroy
 			HttpWebRequest request = Program.CreateWebRequest(uri);
 			request.Method = "POST";
 			request.Timeout = (int) TimeSpan.FromSeconds(5).TotalMilliseconds;
+			request.Headers["Authorization"] = "Basic " + Convert.ToBase64String(Encoding.ASCII.GetBytes(Settings.Default.BuildServerUserName + ":" + Settings.Default.BuildServerPassword));
 
 			bool failed = true;
 			HttpStatusCode? statusCode = null;

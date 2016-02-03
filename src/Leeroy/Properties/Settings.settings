@@ -8,5 +8,11 @@
     <Setting Name="Password" Type="System.String" Scope="Application">
       <Value Profile="(Default)">password</Value>
     </Setting>
+    <Setting Name="BuildServerUserName" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">username</Value>
+    </Setting>
+    <Setting Name="BuildServerPassword" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">password</Value>
+    </Setting>
   </Settings>
 </SettingsFile>
