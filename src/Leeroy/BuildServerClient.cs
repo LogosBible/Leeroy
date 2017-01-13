@@ -130,7 +130,7 @@ namespace Leeroy
 						Log.Warn("Jenkins build doesn't exist at {0}", uri.AbsoluteUri);
 						failed = false;
 					}
-					else if (statusCode == HttpStatusCode.InternalServerError)
+					else if (statusCode == HttpStatusCode.InternalServerError || statusCode == HttpStatusCode.Conflict)
 					{
 						using (Stream stream = response.GetResponseStream())
 						using (StreamReader reader = new StreamReader(stream, Encoding.ASCII))
