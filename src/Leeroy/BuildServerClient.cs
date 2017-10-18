@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Leeroy.Properties;
 using Logos.Utility.Logging;
 using Logos.Utility.Net;
+using Newtonsoft.Json;
 
 namespace Leeroy
 {
@@ -18,6 +19,7 @@ namespace Leeroy
 		{
 			m_lock = new object();
 			m_uris = new List<UriTime>();
+			m_hostCrumbs = new Dictionary<string, CrumbResponse>();
 			token.Register(Stop);
 			Task.Factory.StartNew(Program.FailOnException<object>(Run), token, TaskCreationOptions.LongRunning);
 		}
@@ -105,12 +107,20 @@ namespace Leeroy
 
 		private void StartBuild(Uri uri)
 		{
+			var host = uri.Host;
+			if (!m_hostCrumbs.TryGetValue(host, out var crumb))
+				m_hostCrumbs[host] = crumb = GetHostCrumb(uri);
+
 			// POST to the build URL, which will start a build
 			Log.Info("Starting a build via: {0}", uri.AbsoluteUri);
-			HttpWebRequest request = Program.CreateWebRequest(uri);
+			var request = Program.CreateWebRequest(uri);
 			request.Method = "POST";
 			request.Timeout = (int) TimeSpan.FromSeconds(5).TotalMilliseconds;
-			request.Headers["Authorization"] = "Basic " + Convert.ToBase64String(Encoding.ASCII.GetBytes(Settings.Default.BuildServerUserName + ":" + Settings.Default.BuildServerPassword));
+			AddAuthorization(request);
+
+			// add CSRF crumb
+			if (crumb != null)
+				request.Headers.Add(crumb.CrumbRequestField, crumb.Crumb);
 
 			bool failed = true;
 			HttpStatusCode? statusCode = null;
@@ -129,6 +139,11 @@ namespace Leeroy
 					{
 						Log.Warn("Jenkins build doesn't exist at {0}", uri.AbsoluteUri);
 						failed = false;
+					}
+					else if (statusCode == HttpStatusCode.Forbidden)
+					{
+						Log.Info("Got HTTP response status {0} for build at {1}; assuming CSRF token failure", statusCode, uri.AbsoluteUri);
+						m_hostCrumbs[host] = GetHostCrumb(uri);
 					}
 					else if (statusCode == HttpStatusCode.InternalServerError || statusCode == HttpStatusCode.Conflict)
 					{
@@ -163,30 +178,74 @@ namespace Leeroy
 			}
 		}
 
+		private CrumbResponse GetHostCrumb(Uri uri)
+		{
+			var crumbUri = new Uri(uri, "/crumbIssuer/api/json");
+
+			// POST to the build URL, which will start a build
+			Log.Info("Requesting crumb from {0}", crumbUri.AbsoluteUri);
+			var request = Program.CreateWebRequest(crumbUri);
+			request.Method = "GET";
+			request.Timeout = (int) TimeSpan.FromSeconds(5).TotalMilliseconds;
+			AddAuthorization(request);
+
+			try
+			{
+				using (HttpWebResponse response = request.GetHttpResponse())
+				{
+					var statusCode = response.StatusCode;
+					Log.Info("Got HTTP response status {0} from {1}", statusCode, crumbUri.AbsoluteUri);
+					if (statusCode == HttpStatusCode.OK)
+					{
+						using (var stream = response.GetResponseStream())
+						using (var reader = new StreamReader(stream))
+							return JsonConvert.DeserializeObject<CrumbResponse>(reader.ReadToEnd());
+					}
+				}
+			}
+			catch (WebException ex)
+			{
+				if (ex.Status == WebExceptionStatus.ProtocolError)
+				{
+					var webResponse = (HttpWebResponse) ex.Response;
+					Log.Info("Got HTTP response status {0} from {1}", webResponse.StatusCode, crumbUri.AbsoluteUri);
+				}
+				else
+				{
+					Log.Error("Got HTTP error {0} from {1}", ex.Message, crumbUri.AbsoluteUri);
+				}
+				ex.DisposeResponse();
+			}
+
+			return null;
+		}
+
+		private void AddAuthorization(HttpWebRequest request)
+		{
+			request.Headers["Authorization"] = "Basic " + Convert.ToBase64String(Encoding.ASCII.GetBytes(Settings.Default.BuildServerUserName + ":" + Settings.Default.BuildServerPassword));
+		}
+
 		private struct UriTime
 		{
 			public UriTime(Uri uri, DateTime time)
 			{
-				m_uri = uri;
-				m_time = time;
+				Uri = uri;
+				Time = time;
 			}
 
-			public Uri Uri
-			{
-				get { return m_uri; }
-			}
+			public Uri Uri { get; }
+			public DateTime Time { get; }
+		}
 
-			public DateTime Time
-			{
-				get { return m_time; }
-			}
-
-			readonly Uri m_uri;
-			readonly DateTime m_time;
+		private sealed class CrumbResponse
+		{
+			public string Crumb { get; set; }
+			public string CrumbRequestField { get; set; }
 		}
 
 		readonly object m_lock;
 		readonly List<UriTime> m_uris;
+		readonly Dictionary<string, CrumbResponse> m_hostCrumbs;
 
 		static readonly Logger Log = LogManager.GetLogger("BuildServerClient");
 	}
