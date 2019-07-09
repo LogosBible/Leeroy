@@ -58,19 +58,17 @@
     <Reference Include="Common.Logging.Log4Net">
       <HintPath>..\..\packages\Common.Logging.Log4Net.2.0.1\lib\net20\Common.Logging.Log4Net.dll</HintPath>
     </Reference>
-    <Reference Include="LibGit2Sharp, Version=0.14.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\LibGit2Sharp.0.14.0.0\lib\net35\LibGit2Sharp.dll</HintPath>
+    <Reference Include="LibGit2Sharp, Version=0.16.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\LibGit2Sharp.0.16.0.0\lib\net35\LibGit2Sharp.dll</HintPath>
     </Reference>
     <Reference Include="log4net">
       <HintPath>..\..\packages\log4net.1.2.10\lib\2.0\log4net.dll</HintPath>
     </Reference>
-    <Reference Include="Logos.Git, Version=0.5.1.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Logos.Git.0.5.1\lib\net40\Logos.Git.dll</HintPath>
+    <Reference Include="Logos.Git, Version=0.6.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Logos.Git.0.6.0\lib\net472\Logos.Git.dll</HintPath>
+      <Private>True</Private>
     </Reference>
-    <Reference Include="Logos.Utility, Version=2.0.0.0, Culture=neutral, processorArchitecture=MSIL" Condition="'$(Configuration)' == 'Release'">
-      <SpecificVersion>False</SpecificVersion>
+    <Reference Include="Logos.Utility, Version=2.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\..\packages\Logos.Utility.2.0.0\lib\net40\Logos.Utility.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
@@ -130,24 +128,14 @@
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
   </ItemGroup>
-  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
-    <ProjectReference Include="..\..\..\Logos.Git\src\Logos.Git\Logos.Git.csproj">
-      <Project>{519E9EF0-ACC3-4F22-99B3-11D8354A0AB3}</Project>
-      <Name>Logos.Git</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\Logos.Utility\src\Logos.Utility\Logos.Utility.csproj">
-      <Project>{F0BB7927-B2DB-4E37-9807-8E697CA09F32}</Project>
-      <Name>Logos.Utility</Name>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>
 if not exist "$(TargetDir)NativeBinaries" md "$(TargetDir)NativeBinaries"
 if not exist "$(TargetDir)NativeBinaries\x86" md "$(TargetDir)NativeBinaries\x86"
-xcopy /s /y "$(SolutionDir)packages\LibGit2Sharp.0.14.0.0\NativeBinaries\x86\*.*" "$(TargetDir)NativeBinaries\x86"
+xcopy /s /y /d "$(SolutionDir)packages\LibGit2Sharp.0.16.0.0\lib\net35\NativeBinaries\x86\*.*" "$(TargetDir)NativeBinaries\x86"
 if not exist "$(TargetDir)NativeBinaries\amd64" md "$(TargetDir)NativeBinaries\amd64"
-xcopy /s /y "$(SolutionDir)packages\LibGit2Sharp.0.14.0.0\NativeBinaries\amd64\*.*" "$(TargetDir)NativeBinaries\amd64"</PostBuildEvent>
+xcopy /s /y /d "$(SolutionDir)packages\LibGit2Sharp.0.16.0.0\lib\net35\NativeBinaries\amd64\*.*" "$(TargetDir)NativeBinaries\amd64"</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
