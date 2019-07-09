@@ -3,6 +3,7 @@ bin/
 build/
 obj/
 ipch/
+.vs/
 
 # use NuGet Package Restore
 packages/
